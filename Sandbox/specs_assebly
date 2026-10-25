@@ -1,0 +1,31 @@
+v## SANDBOX SPLIT — GEOMETRY vs IMAGING (2026-10-25, Steven's ruling)
+
+1. GEOMETRY LAYER (printer truth, underneath)
+   - Triangular mesh, in millimetres, units stated.
+   - Printer-ready only if: no degenerate faces, every edge shared by
+     exactly 2 faces (watertight), signed volume > 0, bounding box reported.
+   - Export: ASCII STL. Shading never changes this layer.
+
+2. IMAGING LAYER (eye, on top)
+   - Material colour (RGB), light direction, ambient + diffuse + specular
+     highlight, view yaw/pitch, perspective projection, painter-sorted
+     shaded polygons (SVG final image).
+   - Imaging reads geometry, never writes it. Colour, light, or view
+     changes do not change geometry hash, volume, bounding box, or STL.
+
+3. FINAL IMAGING DECISION (the user, not the code)
+   - Decision record holds: geometry hash, printer_ready, volume,
+     bounding box, imaging parameters, approved flag, approver, notes.
+   - approved defaults to False. No auto-approval.
+   - A build goes to print only after printer_ready is True AND the
+     user has approved the final shaded image.
+
+4. DISPLAY RESOLUTION
+   - Visual may use shading/parallax for the eye; geometry stays true
+     for print. This split, not a choice between them, resolves the
+     parallax vs true-3D question for the sandbox.
+
+NOT YET BUILT (do not claim): interactive builder UI, environmental
+forces (wind/weather/sea), slicer settings, material-as-colour mapping,
+co-creation editing, printer pipeline wiring. This file is the
+geometry + imaging core and the decision record, nothing more.
