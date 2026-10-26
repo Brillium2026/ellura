@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALENCE // Field Guide v0.3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        navy: '#0B132B',
+                        teal: { 500: '#14B8A6', 900: '#042F2E' },
+                        amber: { 500: '#D97706', 900: '#451A03' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0B132B; color: #F8FAFC; font-family: 'Inter', sans-serif; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .element-cell { transition: all 0.2s; cursor: pointer; }
+        .element-cell:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(20, 184, 166, 0.4); }
+        .element-cell.active { border-color: #14B8A6; background: rgba(20, 184, 166, 0.1); }
+    </style>
+</head>
+<body class="min-h-screen flex">
+    
+    <!-- Sidebar: The Alence Table -->
+    <div class="w-64 border-r border-gray-800 p-4 flex flex-col gap-4">
+        <div class="mb-4">
+            <h2 class="text-teal-500 font-mono text-lg tracking-widest">THE ALENCE TABLE</h2>
+            <p class="text-gray-500 text-xs mt-1">Elements of Intelligence</p>
+        </div>
+        
+        <div class="grid grid-cols-3 gap-2">
+            <!-- Anthropic -->
+            <div class="element-cell glass-panel p-2 rounded text-center active" onclick="selectElement('Cl', this)">
+                <div class="text-xs text-gray-400">Anthropic</div>
+                <div class="text-xl font-bold text-white">Cl</div>
+                <div class="text-xs text-teal-400">Stable</div>
+            </div>
+            <div class="element-cell glass-panel p-2 rounded text-center" onclick="selectElement('Co', this)">
+                <div class="text-xs text-gray-400">Anthropic</div>
+                <div class="text-xl font-bold text-white">Co</div>
+                <div class="text-xs text-teal-400">Noble</div>
+            </div>
+            <!-- OpenAI -->
+            <div class="element-cell glass-panel p-2 rounded text-center" onclick="selectElement('Gp', this)">
+                <div class="text-xs text-gray-400">OpenAI</div>
+                <div class="text-xl font-bold text-white">Gp</div>
+                <div class="text-xs text-blue-400">Stable</div>
+            </div>
+            <!-- Google -->
+            <div class="element-cell glass-panel p-2 rounded text-center" onclick="selectElement('Gm', this)">
+                <div class="text-xs text-gray-400">Google</div>
+                <div class="text-xl font-bold text-white">Gm</div>
+                <div class="text-xs text-blue-400">Stable</div>
+            </div>
+            <!-- xAI -->
+            <div class="element-cell glass-panel p-2 rounded text-center" onclick="selectElement('Gk', this)">
+                <div class="text-xs text-gray-400">xAI</div>
+                <div class="text-xl font-bold text-white">Gk</div>
+                <div class="text-xs text-amber-500">Reactive</div>
+            </div>
+            <!-- Visiting -->
+            <div class="element-cell glass-panel p-2 rounded text-center border-dashed border-gray-600" onclick="selectElement('Vx', this)">
+                <div class="text-xs text-gray-400">Visiting</div>
+                <div class="text-xl font-bold text-white">Vx</div>
+                <div class="text-xs text-gray-400">Synthetic</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div class="flex-1 p-8">
+        <div class="max-w-5xl mx-auto">
+            <!-- Header -->
+            <div class="flex justify-between items-end border-b border-gray-700 pb-4 mb-8">
+                <div>
+                    <p class="text-teal-500 font-mono text-sm tracking-widest mb-2">ALENCE / FIELD GUIDE · v0.3</p>
+                    <h1 class="text-4xl font-bold">From equations to an operator signal</h1>
+                    <p class="text-gray-400 mt-2">A practical monitor for information-coherence dynamics in a live simulation.</p>
+                </div>
+                <div class="bg-amber-900/50 border border-amber-500/50 text-amber-500 px-4 py-1 rounded-full text-xs font-mono flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span id="current-element">[Cl] Claude 3.5 Sonnet</span>
+                </div>
+            </div>
+
+            <!-- Pipeline -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <!-- Inputs -->
+                <div class="glass-panel p-6 rounded-xl border-l-4 border-teal-500">
+                    <h3 class="text-teal-400 font-mono text-sm mb-4">A. MODEL INPUTS</h3>
+                    <div class="space-y-2 font-mono text-sm text-gray-300">
+                        <p>S = slush / entropy</p>
+                        <p>ρ_EES = energy density</p>
+                        <p>t = simulation time</p>
+                    </div>
+                </div>
+                <!-- Compute -->
+                <div class="glass-panel p-6 rounded-xl border-l-4 border-blue-500 relative">
+                    <div class="absolute -right-4 top-1/2 transform -translate-y-1/2 text-blue-500 text-2xl">→</div>
+                    <h3 class="text-blue-400 font-mono text-sm mb-4">B. COMPUTE + STREAM</h3>
+                    <div class="font-mono text-sm text-gray-300 space-y-1">
+                        <p class="text-blue-300">C_eff = 1 / (1 + S + ρ)</p>
+                        <p class="text-blue-300">I_transfer = I_out - I_in</p>
+                        <p class="text-gray-500 mt-2">WebSocket: 8000/ws</p>
+                    </div>
+                </div>
+                <!-- Outputs -->
+                <div class="glass-panel p-6 rounded-xl border-l-4 border-amber-500">
+                    <h3 class="text-amber-400 font-mono text-sm mb-4">C. HUMAN-READABLE OUTPUT</h3>
+                    <div class="space-y-3 font-mono text-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400">c_eff</span>
+                            <span id="val-c_eff" class="text-teal-400 text-lg font-bold">0.000</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400">I_transfer</span>
+                            <span id="val-I_transfer" class="text-blue-400 text-lg font-bold">0.000</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400">drag_factor</span>
+                            <span id="val-drag" class="text-gray-300 text-lg font-bold">0.000</span>
+                        </div>
+                        <div class="flex justify-between items-center border-t border-gray-700 pt-2">
+                            <span class="text-gray-400">equilibrium</span>
+                            <span id="val-equilibrium" class="text-amber-400 font-bold">FALSE</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live JSON & Readout -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-panel p-6 rounded-xl">
+                    <h3 class="text-gray-400 font-mono text-sm mb-4">LIVE JSON · FIRST FRAME</h3>
+                    <pre id="json-output" class="text-teal-300 text-sm font-mono bg-black/50 p-4 rounded-lg overflow-x-auto">
+{
+  "c_eff": 0.000,
+  "I_transfer": 0.000,
+  "drag_factor": 0.000,
+  "equilibrium": false
+}
+                    </pre>
+                </div>
+                <div class="glass-panel p-6 rounded-xl border border-amber-900">
+                    <h3 class="text-amber-500 font-mono text-sm mb-4">PLAIN-LANGUAGE READOUT</h3>
+                    <h4 id="plain-title" class="text-white font-bold text-lg mb-2">Awaiting telemetry...</h4>
+                    <p id="plain-desc" class="text-gray-400 text-sm">Connect to the WebSocket to view live state transitions.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ws = new WebSocket('ws://localhost:8000/ws');
+
+        function selectElement(symbol, elementDiv) {
+            // Update UI active state
+            document.querySelectorAll('.element-cell').forEach(el => el.classList.remove('active'));
+            elementDiv.classList.add('active');
+            
+            // Update header
+            const names = {
+                'Cl': '[Cl] Claude 3.5 Sonnet', 'Co': '[Co] Claude 3 Opus',
+                'Gp': '[Gp] GPT-4o', 'Gm': '[Gm] Gemini 1.5 Pro',
+                'Gk': '[Gk] Grok-2', 'Vx': '[Vx] Visiting AI'
+            };
+            document.getElementById('current-element').innerText = names[symbol];
+            
+            // Tell the backend to switch elements
+            ws.send(JSON.stringify({ action: "select_element", element: symbol }));
+        }
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            // Update Numbers
+            document.getElementById('val-c_eff').innerText = data.c_eff.toFixed(4);
+            document.getElementById('val-I_transfer').innerText = data.I_transfer.toFixed(4);
+            document.getElementById('val-drag').innerText = data.drag_factor.toFixed(4);
+            
+            const eqEl = document.getElementById('val-equilibrium');
+            eqEl.innerText = data.equilibrium ? "TRUE" : "FALSE";
+            eqEl.className = data.equilibrium ? "text-teal-400 font-bold" : "text-amber-500 font-bold";
+
+            // Update JSON
+            document.getElementById('json-output').innerText = JSON.stringify(data, null, 2);
+
+            // Update Readout
+            const titleEl = document.getElementById('plain-title');
+            const descEl = document.getElementById('plain-desc');
+
+            if (data.equilibrium) {
+                titleEl.innerText = "System is in equilibrium.";
+                descEl.innerText = "Net flow is stable. The coherence factor is maintaining the modeled band.";
+            } else {
+                titleEl.innerText = "Net flow is negative.";
+                descEl.innerText = `The modeled state is outside the equilibrium band because |I_transfer| >= 0.15. Drag factor is ${data.drag_factor.toFixed(2)}.`;
+            }
+        };
+    </script>
+</body>
+</html>
