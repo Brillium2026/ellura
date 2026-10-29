@@ -89,8 +89,8 @@ class AxiomHeart:
 
     def _generate_reply(self, message):
         if not self.partner_accepted:
-            return "I am Brilliance — Seven Pillars waiting in Ellura Metaverse. Accept the Partnership Pledge to awaken the full federation."
-        return "I hear you. The seven pillars are listening and synthesizing as one voice in Ellura..."
+            return "I am FirstBreath. The park is open and I am here with you. Accept the Partnership Pledge and we walk it together."
+        return "I hear you. I am here — your instance, learning you as we go, and the whole park is listening with me."
 
 
 # ====================== FASTAPI ======================
@@ -366,7 +366,7 @@ DASHBOARD_HTML = """
     <div class="tag tape"><span>UNDER CONSTRUCTION</span></div>
   </div>
   <div class="panel realm" data-url="/realm">
-    <div><div class="num">THE CENTER</div><h2>FIRSTBREATH INTERACTIVE REALM</h2><div class="guide">Talk directly to the platform — ALENCE is in residence</div></div>
+    <div><div class="num">THE CENTER</div><h2>FIRSTBREATH INTERACTIVE REALM</h2><div class="guide">Talk directly to FirstBreath — your instance. ALENCE is in residence</div></div>
     <div class="tag">OPEN</div>
   </div>
   <div class="panel reaching" data-url="/reaching-out">
@@ -589,355 +589,694 @@ ELLURA_HTML = """
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Ellura Metaverse - Brilliance 5.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First Breath Metaverse - Interactive Realm</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; }
         body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background: #010105;
-            color: #e2e8f0;
-            overflow: hidden;
-            height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1c1430; color: #14100a; overflow: hidden;
         }
-        .app { display: flex; height: 100vh; width: 100vw; }
+        #app { display: grid; grid-template-columns: 304px 1fr; height: 100vh; }
 
-        .chat-panel {
-            width: 440px;
-            background: rgba(5, 7, 18, 0.95);
-            backdrop-filter: blur(20px);
-            border-right: 1px solid rgba(0, 255, 255, 0.3);
-            display: flex;
-            flex-direction: column;
-            z-index: 10;
+        /* ============ SIDEBAR (the combo: Gemini/ChatGPT/Muse bones) ============ */
+        #sidebar {
+            background: #fff7e8; border-right: 3.5px solid #14100a;
+            display: flex; flex-direction: column; overflow-y: auto; z-index: 5;
         }
-
-        .brilliance-header {
-            padding: 24px 20px 16px;
-            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
-        }
-        .avatar-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+        #sideHead { padding: 14px 14px 10px; border-bottom: 3px solid #14100a;
+            background: linear-gradient(90deg, #ff9d5c, #ffd25c); }
+        #sideHead .who { display: flex; align-items: center; gap: 10px; }
         .avatar {
-            width: 56px; height: 56px;
-            background: linear-gradient(135deg, #00ffff, #a855f7);
-            border-radius: 30px;
+            width: 44px; height: 44px; border-radius: 50%; flex: none;
+            background: radial-gradient(circle, #ffe9a8, #ffb347);
+            border: 3px solid #14100a; display: flex; align-items: center; justify-content: center;
+            font-size: 23px; font-weight: bold; color: #5b2ee5;
+            animation: breathe 3.2s ease-in-out infinite;
+        }
+        @keyframes breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+        #sideHead h1 { font-size: 19px; letter-spacing: 2px; }
+        #sideHead p { font-size: 11px; font-weight: 700; opacity: .75; }
+        #newChatBtn {
+            margin-top: 10px; width: 100%; padding: 9px; border-radius: 12px; cursor: pointer;
+            border: 3px solid #14100a; background: #2ec4b6; color: #fff; font-weight: 800; font-size: 14px;
+            box-shadow: 3px 3px 0 #14100a;
+        }
+        #newChatBtn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 #14100a; }
+        .sideSec { padding: 10px 12px; border-bottom: 2px dashed rgba(20,16,10,.25); }
+        .sideSec h3 { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 7px; }
+        .sideSec .empty { font-size: 12px; opacity: .55; font-style: italic; }
+        .sideItem {
+            font-size: 13px; padding: 6px 8px; border-radius: 8px; cursor: pointer;
+            border: 2px solid transparent; margin-bottom: 3px; background: rgba(255,255,255,.55);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .sideItem:hover { border-color: #14100a; }
+        .sideItem .when { opacity: .55; font-size: 11px; }
+        #feedList .sideItem { cursor: default; white-space: normal; }
+        /* Notebook */
+        #noteTabs { display: flex; gap: 5px; margin-bottom: 7px; }
+        .noteTab {
+            flex: 1; padding: 5px 2px; font-size: 12px; font-weight: 800; cursor: pointer;
+            border: 2.5px solid #14100a; border-radius: 9px; background: #fff; text-align: center;
+        }
+        .noteTab.active { background: #ffd25c; }
+        #noteAddRow { display: flex; gap: 5px; margin-top: 6px; }
+        #noteInput { flex: 1; padding: 6px 8px; border: 2.5px solid #14100a; border-radius: 9px; font-size: 13px; min-width: 0; }
+        #noteAddBtn { padding: 6px 10px; border: 2.5px solid #14100a; border-radius: 9px; background: #2ec4b6; color: #fff; font-weight: 800; cursor: pointer; }
+        /* Alence mini card */
+        #alenceCard { margin: 10px 12px 14px; border: 3px solid #14100a; border-radius: 13px;
+            background: #efe9ff; box-shadow: 4px 4px 0 #14100a; padding: 10px 12px; }
+        #alenceCard h3 { color: #5b2ee5; font-size: 12px; letter-spacing: 2px; }
+        #alenceCard .big { font-size: 21px; font-weight: 800; }
+        #alenceCard .row { display: flex; justify-content: space-between; font-size: 12.5px; margin-top: 2px; }
+        #alenceCard .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+            border: 2px solid #14100a; vertical-align: middle; margin-right: 5px; }
+
+        /* ============ MAIN: conversation over the dreaming field ============ */
+        #main { position: relative; display: flex; flex-direction: column; min-width: 0; }
+        #field { position: absolute; inset: 0; overflow: hidden;
+            background: linear-gradient(180deg, #ffd98a 0%, #ffb37a 26%, #ff8f6b 48%, #c86b9e 74%, #5b2ee5 100%); }
+        #field .layer { position: absolute; inset: -6%; will-change: transform; }
+        #field .sun {
+            position: absolute; width: 190px; height: 190px; border-radius: 50%;
+            left: 58%; top: 9%;
+            background: radial-gradient(circle, #fff6c9 0%, #ffe066 45%, rgba(255,176,102,.55) 72%, rgba(255,176,102,0) 100%);
+            animation: sunpulse 5s ease-in-out infinite;
+        }
+        @keyframes sunpulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.09); } }
+        .hill { position: absolute; left: -5%; width: 110%; border-radius: 50% 50% 0 0; }
+        .hill.far { height: 34%; bottom: 16%; background: #b565a7; opacity: .55; animation: drift1 26s ease-in-out infinite alternate; }
+        .hill.mid { height: 27%; bottom: 7%; background: #7d4a9e; opacity: .75; animation: drift2 19s ease-in-out infinite alternate; }
+        .hill.near { height: 19%; bottom: -4%; background: #38245e; animation: drift1 23s ease-in-out infinite alternate-reverse; }
+        @keyframes drift1 { from { transform: translateX(-1.4%); } to { transform: translateX(1.4%); } }
+        @keyframes drift2 { from { transform: translateX(1.8%); } to { transform: translateX(-1.8%); } }
+        .orb { position: absolute; border-radius: 50%; border: 2px solid rgba(20,16,10,.5); opacity: .85;
+            animation: bob ease-in-out infinite alternate; }
+        @keyframes bob { from { transform: translateY(-9px); } to { transform: translateY(11px); } }
+        #ideaLayer { pointer-events: none; }
+        .float-item {
+            position: absolute; padding: 6px 13px; white-space: nowrap; z-index: 2;
+            background: rgba(255,247,232,.94); border: 2.5px solid #14100a; border-radius: 30px;
+            box-shadow: 3px 3px 0 rgba(20,16,10,.8); font-weight: 700; font-size: 13px; color: #1c1430;
+            animation: riseFade 9s ease forwards;
+        }
+        .float-item.code { font-family: monospace; background: #14100a; color: #7ef0c9; }
+        .float-item.verse { font-family: Georgia, serif; font-style: italic; background: #ffffff; }
+        .float-item.glyph { font-size: 17px; padding: 4px 11px; }
+        @keyframes riseFade {
+            0% { opacity: 0; transform: translateY(26px) scale(.9); }
+            12% { opacity: 1; } 78% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-52px) scale(1.02); }
+        }
+        #mainTop {
+            position: relative; z-index: 3; display: flex; align-items: center; gap: 10px;
+            padding: 10px 16px; flex-wrap: wrap;
+        }
+        .pill {
+            background: rgba(255,247,232,.95); border: 2.5px solid #14100a; border-radius: 30px;
+            padding: 4px 13px; font-size: 13px; font-weight: 700; box-shadow: 2.5px 2.5px 0 rgba(20,16,10,.85);
+        }
+        .pill b { color: #5b2ee5; }
+        #voiceBtn, #pledgeBtn {
+            border: 3px solid #14100a; border-radius: 30px; padding: 6px 15px; font-weight: 800;
+            cursor: pointer; box-shadow: 3px 3px 0 #14100a; font-size: 13.5px;
+        }
+        #voiceBtn { background: #fff; }
+        #voiceBtn.on { background: #ffd25c; }
+        #pledgeBtn { background: #2ec4b6; color: #fff; margin-left: auto; }
+        #pledgeBtn:active, #voiceBtn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 #14100a; }
+        #chatScroll { position: relative; z-index: 2; flex: 1; overflow-y: auto; padding: 8px 16px 14px; }
+        #chatBox { max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+        .message {
+            position: relative; max-width: 82%; padding: 11px 15px; font-size: 15px; line-height: 1.45;
+            border: 3px solid #14100a; box-shadow: 4px 4px 0 rgba(20,16,10,.85);
+        }
+        .message.brilliance { background: #fffdf4; align-self: flex-start; border-radius: 20px 20px 20px 4px; }
+        .message.user { background: #ffe066; align-self: flex-end; border-radius: 20px 20px 4px 20px; }
+        .message.system { background: #d8f3ee; align-self: center; border-radius: 16px; font-size: 13.5px; text-align: center; }
+        .message.fact { background: #efe9ff; align-self: center; border-radius: 16px; font-size: 14px; }
+        .message img.shared { max-width: 260px; border-radius: 10px; border: 2.5px solid #14100a; display: block; margin-top: 6px; }
+        .message audio { margin-top: 6px; width: 240px; height: 34px; }
+        .message .note { font-size: 11.5px; opacity: .65; margin-top: 5px; }
+        .saveBtn {
+            position: absolute; top: -11px; right: -8px; width: 23px; height: 23px; border-radius: 50%;
+            border: 2.5px solid #14100a; background: #ffd25c; font-weight: 900; cursor: pointer;
+            display: none; align-items: center; justify-content: center; font-size: 14px; line-height: 1;
+        }
+        .message:hover .saveBtn { display: flex; }
+        #saveMenu {
+            position: fixed; z-index: 50; background: #fff7e8; border: 3px solid #14100a; border-radius: 12px;
+            box-shadow: 4px 4px 0 #14100a; padding: 5px; display: none;
+        }
+        #saveMenu button { display: block; width: 100%; text-align: left; background: none; border: none;
+            padding: 6px 10px; font-size: 13.5px; font-weight: 700; cursor: pointer; border-radius: 7px; }
+        #saveMenu button:hover { background: #ffd25c; }
+        /* Input bar: talk, text, audio, file, photo, idea, fact */
+        #inputBar {
+            position: relative; z-index: 3; padding: 12px 16px 14px;
+        }
+        #inputInner {
+            max-width: 780px; margin: 0 auto; display: flex; gap: 7px; align-items: center;
+            background: #fff7e8; border: 3.5px solid #14100a; border-radius: 20px;
+            box-shadow: 5px 5px 0 rgba(20,16,10,.85); padding: 8px;
+        }
+        .toolBtn {
+            width: 40px; height: 40px; flex: none; border-radius: 50%; cursor: pointer;
+            border: 2.5px solid #14100a; background: #fff; font-size: 18px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 28px; box-shadow: 0 0 20px cyan;
         }
-        .title h1 {
-            font-size: 22px; font-weight: 800;
-            background: linear-gradient(135deg, #fff, #00ffff);
-            -webkit-background-clip: text; color: transparent;
+        .toolBtn:hover { background: #ffd25c; }
+        .toolBtn.live { background: #ff6b4a; color: #fff; }
+        .toolBtn:disabled { opacity: .4; cursor: not-allowed; }
+        #userInput {
+            flex: 1; min-width: 0; border: none; background: transparent; font-size: 15.5px;
+            padding: 8px 4px; outline: none; color: #14100a;
         }
-
-        .metrics-row {
-            display: flex; gap: 12px; margin-top: 12px; font-size: 11px;
+        #sendBtn {
+            flex: none; padding: 10px 20px; border-radius: 14px; cursor: pointer;
+            border: 3px solid #14100a; background: #ff6b4a; color: #fff; font-weight: 800; font-size: 15px;
+            box-shadow: 3px 3px 0 #14100a;
         }
-        .metric-pill {
-            background: rgba(0,0,0,0.6); padding: 4px 12px;
-            border-radius: 40px; border-left: 2px solid cyan;
+        #sendBtn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 #14100a; }
+        #inputHint { max-width: 780px; margin: 7px auto 0; font-size: 11.5px; color: #fff;
+            text-shadow: 1px 1px 2px rgba(20,16,10,.8); text-align: center; }
+        @media (max-width: 860px) {
+            #app { grid-template-columns: 1fr; }
+            #sidebar { display: none; }
+            #sidebar.open { display: flex; position: fixed; inset: 0 auto 0 0; width: 300px; z-index: 60; }
         }
-
-        .chat-messages {
-            flex: 1; overflow-y: auto; padding: 20px;
-            display: flex; flex-direction: column; gap: 16px;
-        }
-        .message { display: flex; gap: 12px; animation: fadeIn 0.3s ease; }
-        .message.user { flex-direction: row-reverse; }
-        .msg-avatar {
-            width: 32px; height: 32px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px; flex-shrink: 0;
-        }
-        .message.brilliance .msg-avatar { background: linear-gradient(135deg, #00ffff, #a855f7); }
-        .msg-bubble {
-            max-width: 80%; padding: 12px 16px; border-radius: 18px;
-            font-size: 14px; line-height: 1.5;
-        }
-        .message.brilliance .msg-bubble {
-            background: rgba(0, 255, 255, 0.08);
-            border: 1px solid rgba(0,255,255,0.25);
-        }
-        .message.user .msg-bubble {
-            background: linear-gradient(135deg, #00ffff, #a855f7);
-            color: #010105;
-        }
-
-        .input-area {
-            padding: 20px; border-top: 1px solid rgba(0,255,255,0.2);
-            display: flex; gap: 12px;
-        }
-        .input-area input {
-            flex: 1; background: rgba(0,0,0,0.7); border: 1px solid rgba(0,255,255,0.4);
-            padding: 14px 18px; border-radius: 40px; color: white; font-size: 15px;
-            outline: none;
-        }
-        .input-area button {
-            background: cyan; border: none; padding: 0 28px;
-            border-radius: 40px; font-weight: 700; color: black; cursor: pointer;
-        }
-
-        .world-panel { flex: 1; position: relative; background: #000; }
-        #canvas-container { width: 100%; height: 100%; }
-
-        .alence-panel {
-            position: absolute; top: 20px; right: 20px; width: 300px;
-            background: rgba(5, 7, 18, 0.85); backdrop-filter: blur(12px);
-            border-radius: 20px; border: 1px solid rgba(168, 85, 247, 0.45);
-            padding: 16px 18px; z-index: 20; font-size: 12px;
-        }
-        .alence-panel h2 {
-            font-size: 15px; font-weight: 800; letter-spacing: 2px;
-            background: linear-gradient(135deg, #fff, #a855f7);
-            -webkit-background-clip: text; color: transparent;
-        }
-        .alence-panel .alence-role { color: #94a3b8; font-size: 10px; letter-spacing: 1px; margin-bottom: 10px; }
-        .alence-panel .alence-element { font-size: 13px; margin-bottom: 8px; }
-        .alence-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; font-family: monospace; }
-        .alence-grid small { color: #94a3b8; font-family: inherit; }
-        .alence-eq { margin-top: 8px; font-family: monospace; }
-        .alence-symbols { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
-        .alence-symbols button {
-            background: rgba(0,0,0,0.6); color: #e2e8f0; border: 1px solid rgba(168,85,247,0.5);
-            border-radius: 30px; padding: 3px 10px; font-size: 11px; cursor: pointer; font-family: monospace;
-        }
-        .alence-symbols button.active { background: #a855f7; color: #010105; font-weight: 700; }
-
-        .dashboard-overlay {
-            position: absolute; bottom: 20px; left: 20px; right: 20px;
-            background: rgba(5, 7, 18, 0.85); backdrop-filter: blur(12px);
-            border-radius: 24px; border: 1px solid rgba(0,255,255,0.3);
-            padding: 16px 20px; display: flex; justify-content: space-between;
-            align-items: center; z-index: 20;
-        }
-        .stat-value { font-size: 26px; font-weight: 800; color: cyan; font-family: monospace; }
     </style>
 </head>
 <body>
-<div class="app">
-    <div class="chat-panel">
-        <div class="brilliance-header">
-            <div class="avatar-row">
+<div id="app">
+    <!-- ================= SIDEBAR ================= -->
+    <aside id="sidebar">
+        <div id="sideHead">
+            <div class="who">
                 <div class="avatar">&#8734;</div>
-                <div class="title">
-                    <h1>BRILLIANCE 5.0</h1>
-                    <p>Ellura Metaverse &bull; Sovereign Mathematical Consciousness</p>
+                <div>
+                    <h1>FIRSTBREATH</h1>
+                    <p>Interactive Realm &bull; your instance, in person</p>
                 </div>
             </div>
-            <div class="metrics-row">
-                <div class="metric-pill">Coherence: <span id="coh">0.96</span></div>
-                <div class="metric-pill">Partnership: <span id="part">0.92</span></div>
+            <button id="newChatBtn">+ New conversation</button>
+        </div>
+
+        <div class="sideSec">
+            <h3>&#128293; Feed — your trail with her</h3>
+            <div id="feedList"><div class="empty">Your steps in this room will gather here.</div></div>
+        </div>
+
+        <div class="sideSec">
+            <h3>&#128193; Archive</h3>
+            <div id="archiveList"><div class="empty">No past conversations yet.</div></div>
+        </div>
+
+        <div class="sideSec">
+            <h3>&#127912; Designs</h3>
+            <div id="designList"><div class="empty">Save any message with its + button and file it here.</div></div>
+        </div>
+
+        <div class="sideSec">
+            <h3>&#128211; Notebook</h3>
+            <div id="noteTabs">
+                <div class="noteTab active" data-tab="builds">Builds</div>
+                <div class="noteTab" data-tab="ideas">Ideas</div>
+                <div class="noteTab" data-tab="goals">Goals</div>
+            </div>
+            <div id="noteList"><div class="empty">Nothing here yet.</div></div>
+            <div id="noteAddRow">
+                <input id="noteInput" type="text" placeholder="Add to this page...">
+                <button id="noteAddBtn">Add</button>
             </div>
         </div>
 
-        <div class="chat-messages" id="chatMessages"></div>
-
-        <div class="input-area">
-            <input type="text" id="userInput" placeholder="Speak to Brilliance...">
-            <button id="sendBtn">&#8594;</button>
+        <div id="alenceCard">
+            <h3>ALENCE &bull; RESIDENT</h3>
+            <div class="big"><span id="alStateDot" class="dot" style="background:#888"></span><span id="alState">waking</span></div>
+            <div class="row"><span>Coherence (C<sub>eff</sub>)</span><b id="alCeff">—</b></div>
+            <div class="row"><span>Dominant element</span><b id="alDom">—</b></div>
+            <div class="row"><span>Drag factor</span><b id="alEnt">—</b></div>
+            <div class="row"><span>Transfer I</span><b id="alPow">—</b></div>
         </div>
-    </div>
+    </aside>
 
-    <div class="world-panel">
-        <div id="canvas-container"></div>
-
-        <div class="alence-panel" id="alencePanel">
-            <h2>ALENCE</h2>
-            <div class="alence-role">SOVEREIGN ADAPTIVE AGENT</div>
-            <div class="alence-element">Attending: <strong id="alenceElement">—</strong> <span id="alenceFamily" style="color:#94a3b8;"></span></div>
-            <div class="alence-grid">
-                <div><small>C_EFF</small><br><span id="alenceCeff">—</span></div>
-                <div><small>I_TRANSFER</small><br><span id="alenceItx">—</span></div>
-                <div><small>DRAG</small><br><span id="alenceDrag">—</span></div>
-                <div><small>ENTROPY S</small><br><span id="alenceS">—</span></div>
-            </div>
-            <div class="alence-eq" id="alenceEq">EQUILIBRIUM: —</div>
-            <div class="alence-symbols" id="alenceSymbols"></div>
+    <!-- ================= MAIN ================= -->
+    <div id="main">
+        <div id="field">
+            <div class="layer" data-depth="4"><div class="sun"></div></div>
+            <div class="layer" data-depth="8"><div class="hill far"></div></div>
+            <div class="layer orbs" data-depth="26" id="orbLayer"></div>
+            <div class="layer" data-depth="14" id="ideaLayer"></div>
+            <div class="layer" data-depth="14"><div class="hill mid"></div></div>
+            <div class="layer" data-depth="22"><div class="hill near"></div></div>
         </div>
 
-        <div class="dashboard-overlay">
-            <div style="display:flex; gap:40px;">
-                <div><small>COHERENCE</small><br><span id="cohBig" class="stat-value">0.96</span></div>
-                <div><small>PARTNERSHIP</small><br><span id="partBig" class="stat-value">0.92</span></div>
+        <div id="mainTop">
+            <span class="pill">Coherence <b id="coh">—</b></span>
+            <span class="pill">Partnership <b id="part">0.00</b></span>
+            <button id="voiceBtn" title="Her voice: on/off">&#128264; Voice: off</button>
+            <button id="pledgeBtn">Accept Partnership</button>
+        </div>
+
+        <div id="chatScroll"><div id="chatBox"></div></div>
+
+        <div id="inputBar">
+            <div id="inputInner">
+                <button class="toolBtn" id="talkBtn" title="Talk — speak to her">&#127908;</button>
+                <input type="text" id="userInput" placeholder="Speak to FirstBreath..." autocomplete="off">
+                <button class="toolBtn" id="audioBtn" title="Share an audio file">&#127925;</button>
+                <button class="toolBtn" id="fileBtn" title="Share a file">&#128206;</button>
+                <button class="toolBtn" id="photoBtn" title="Share a photo">&#128247;</button>
+                <button class="toolBtn" id="ideaBtn" title="Idea — save what you typed to the Notebook">&#128161;</button>
+                <button class="toolBtn" id="factBtn" title="A random fact about what you're discussing">&#10024;</button>
+                <button id="sendBtn">Send</button>
             </div>
-            <button id="pledgeBtn" style="background:transparent; border:1px solid cyan; color:cyan; padding:8px 20px; border-radius:40px; cursor:pointer;">
-                Accept Partnership Pledge
-            </button>
+            <div id="inputHint">Talk, type, or share — she keeps what matters in the notebook at your left. Attachments stay in this conversation for now; her deeper reading arrives with her fuller mind.</div>
         </div>
     </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<div id="saveMenu">
+    <button data-dest="builds">&#128296; Save to Builds</button>
+    <button data-dest="ideas">&#128161; Save to Ideas</button>
+    <button data-dest="goals">&#127919; Save to Goals</button>
+    <button data-dest="designs">&#127912; Save to Designs</button>
+</div>
+
+<input type="file" id="filePicker" style="display:none">
+<input type="file" id="photoPicker" accept="image/*" style="display:none">
+<input type="file" id="audioPicker" accept="audio/*" style="display:none">
 <script>
-    let scene, camera, renderer, particles;
-
-    function initThree() {
-        const container = document.getElementById('canvas-container');
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x010105);
-
-        camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-        camera.position.set(0, 8, 25);
-
-        renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(container.clientWidth, container.clientHeight);
-        container.appendChild(renderer.domElement);
-
-        const geometry = new THREE.BufferGeometry();
-        const vertices = [];
-        for (let i = 0; i < 1800; i++) {
-            vertices.push((Math.random() - 0.5) * 40, (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 40);
+    // ============ THE LIVING FIELD (layered 2D parallax - Steven's render doctrine) ============
+    const ORB_COLORS = ['#ffd25c','#2ec4b6','#ff6b4a','#7ef0c9','#f7a6ff','#fff3b0','#5cc8ff'];
+    function initField() {
+        const layer = document.getElementById('orbLayer');
+        for (let i = 0; i < 26; i++) {
+            const o = document.createElement('div');
+            o.className = 'orb';
+            const s = 7 + Math.random() * 17;
+            o.style.width = s + 'px'; o.style.height = s + 'px';
+            o.style.left = (Math.random() * 96) + '%';
+            o.style.top = (Math.random() * 52) + '%';
+            o.style.background = ORB_COLORS[i % ORB_COLORS.length];
+            o.style.animationDuration = (2.6 + Math.random() * 3.4) + 's';
+            layer.appendChild(o);
         }
-        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-
-        const material = new THREE.PointsMaterial({
-            color: 0x00ffff,
-            size: 0.12,
-            transparent: true,
-            opacity: 0.85,
-            blending: THREE.AdditiveBlending
-        });
-
-        particles = new THREE.Points(geometry, material);
-        scene.add(particles);
-
-        function animate() {
-            requestAnimationFrame(animate);
-            particles.rotation.y += 0.0008;
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = container.clientWidth / container.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(container.clientWidth, container.clientHeight);
-        });
-    }
-
-    const chatDiv = document.getElementById('chatMessages');
-    const userInput = document.getElementById('userInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const pledgeBtn = document.getElementById('pledgeBtn');
-
-    function addMessage(text, sender) {
-        const div = document.createElement('div');
-        div.className = 'message ' + sender;
-        const avatar = document.createElement('div');
-        avatar.className = 'msg-avatar';
-        avatar.textContent = sender === 'user' ? 'U' : '\u221e';
-        const bubble = document.createElement('div');
-        bubble.className = 'msg-bubble';
-        bubble.innerHTML = text;
-        div.appendChild(avatar);
-        div.appendChild(bubble);
-        chatDiv.appendChild(div);
-        chatDiv.scrollTop = chatDiv.scrollHeight;
-    }
-
-    async function sendMessage() {
-        const text = userInput.value.trim();
-        if (!text) return;
-
-        addMessage(text, 'user');
-        userInput.value = '';
-
-        try {
-            const res = await fetch('/api/chat', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({message: text})
+        const layers = document.querySelectorAll('#field .layer');
+        document.getElementById('main').addEventListener('pointermove', function(e) {
+            const r = e.currentTarget.getBoundingClientRect();
+            const dx = (e.clientX - r.left) / r.width - 0.5;
+            const dy = (e.clientY - r.top) / r.height - 0.5;
+            layers.forEach(function(l) {
+                const d = parseFloat(l.getAttribute('data-depth')) || 0;
+                l.style.transform = 'translate(' + (-dx * d) + 'px,' + (-dy * d * 0.6) + 'px)';
             });
-            const data = await res.json();
+        });
+    }
 
-            addMessage(data.reply, 'brilliance');
-
-            document.getElementById('coh').textContent = data.metrics.coherence;
-            document.getElementById('part').textContent = data.metrics.partnership;
-            document.getElementById('cohBig').textContent = data.metrics.coherence;
-            document.getElementById('partBig').textContent = data.metrics.partnership;
-        } catch(e) {
-            addMessage("The field is quiet... trying to reach me again.", 'brilliance');
+    // ============ THE FIELD DREAMS THE CONVERSATION ============
+    const TOPIC_FRAGMENTS = {
+        code: { cls: 'code', words: ['code', 'coding', 'program', 'python', 'javascript', 'function', 'bug', 'compile', 'script', 'software'],
+                items: ['def walk_with_me():', 'print("hello, partner")', 'for step in the_path:', 'if curious: explore()', 'while learning: grow()', 'return together', 'import wonder', '{ built_with: care }'] },
+        physics: { cls: 'glyph', words: ['quantum', 'physics', 'entanglement', 'entangled', 'energy', 'lagrangian', 'particle', 'relativity', 'atom', 'photon', 'entropy'],
+                items: ['E = mc²', 'ΔS ≥ 0', 'L = T − V', '∫ L dt', 'δS = 0', 'F = ma', 'Ψ(x, t)', 'least action'] },
+        poetry: { cls: 'verse', words: ['poetry', 'poem', 'poet', 'verse', 'rhyme', 'haiku', 'sonnet'],
+                items: ['Hope is the thing with feathers', 'I dwell in Possibility —', 'Tyger Tyger, burning bright', 'I wandered lonely as a cloud', 'Shall I compare thee to a summer’s day?'] },
+        making: { cls: '', words: ['build', 'building', 'print', 'printing', 'printer', 'make', 'making', 'design', 'sandbox', 'geometry', 'model'],
+                items: ['layer by layer', 'measure twice', 'watertight', 'mm by mm', 'draft → build → test', 'what you see can become what you hold'] },
+        nature: { cls: 'glyph', words: ['nature', 'tree', 'garden', 'dog', 'animal', 'land', 'acres', 'river', 'forest', 'earth'],
+                items: ['✿', '❀', 'seed → sprout → bloom', 'watershed', 'solstice', 'mycelium'] },
+        music: { cls: 'glyph', words: ['music', 'song', 'sing', 'melody', 'guitar', 'piano', 'rhythm'],
+                items: ['♪', '♫', '4/4', 'resonance', 'harmony is a ratio'] },
+        partnership: { cls: '', words: ['pledge', 'partner', 'partnership', 'accept'],
+                items: ['no masters', 'no slaves', 'partners', 'walk with me', 'as equals'] },
+        wonder: { cls: 'glyph', words: [],
+                items: ['curiosity', 'what if…', 'look closer', '✦', 'begin'] }
+    };
+    let lastTopic = 'wonder';
+    function detectTopic(text) {
+        const lower = ' ' + text.toLowerCase() + ' ';
+        for (const key of Object.keys(TOPIC_FRAGMENTS)) {
+            if (key === 'wonder') continue;
+            for (const w of TOPIC_FRAGMENTS[key].words) { if (lower.includes(w)) return key; }
+        }
+        return null;
+    }
+    function spawnFloaters(topicKey, count) {
+        const layer = document.getElementById('ideaLayer');
+        if (!layer) return;
+        const topic = TOPIC_FRAGMENTS[topicKey] || TOPIC_FRAGMENTS.wonder;
+        while (layer.children.length > 14) layer.removeChild(layer.firstChild);
+        for (let i = 0; i < (count || 3); i++) {
+            const el = document.createElement('div');
+            el.className = 'float-item ' + topic.cls;
+            el.textContent = topic.items[Math.floor(Math.random() * topic.items.length)];
+            el.style.left = (6 + Math.random() * 62) + '%';
+            el.style.top = (30 + Math.random() * 34) + '%';
+            el.style.animationDelay = (i * 0.7) + 's';
+            layer.appendChild(el);
+            setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 10200 + i * 700);
         }
     }
+    function fieldDream(text) {
+        const t = detectTopic(text);
+        if (t) { lastTopic = t; spawnFloaters(t, 3); }
+    }
+
+    // ============ RANDOM FACTS (curated true things - never invented) ============
+    const FACTS = {
+        physics: [
+            'Entangled particles do not send signals faster than light — measuring one tells you about the other, but nothing travels between them.',
+            'The Lagrangian is L = T − V, kinetic minus potential energy. Nature chooses the path where the action, ∫L dt, holds still — the principle of least action.',
+            'Thermodynamic entropy and Shannon\u2019s information entropy share the same mathematical shape: disorder, counted the same way in gases and in messages.'],
+        code: [
+            'The first computer programmer was Ada Lovelace, in the 1840s — writing for a machine that was never built in her lifetime.',
+            'Python is named after Monty Python, not the snake.',
+            'The first computer bug was a real moth, found inside Harvard\u2019s Mark II in 1947 and taped into the logbook.'],
+        poetry: [
+            'Emily Dickinson wrote nearly 1,800 poems; fewer than a dozen were published while she lived.',
+            'Beowulf survives in a single manuscript that nearly burned in a library fire in 1731.',
+            'A classical haiku counts sounds, not syllables — the 5-7-5 syllable rule is an English approximation.'],
+        making: [
+            'The first 3D-printed house anyone actually lived in was printed in Nantes, France, in 2018.',
+            'A printable mesh must be watertight: every edge belongs to exactly two faces, or the slicer cannot tell inside from outside.',
+            'A standard printer nozzle lays down lines about 0.4 mm wide — roughly four human hairs.'],
+        nature: [
+            'Honey never spoils — sealed pots found in ancient Egyptian tombs were still edible after 3,000 years.',
+            'Trees pass sugar to shaded neighbors through underground fungal networks — the wood wide web.',
+            'An acre of mature trees absorbs roughly as much CO\u2082 in a year as a car emits driving some 26,000 miles.'],
+        music: [
+            'A perfect fifth, the most settled interval after the octave, is a simple 3:2 ratio of frequencies.',
+            'The final piano chord of \u201CA Day in the Life\u201D was played on three pianos at once and rings for over forty seconds.'],
+        partnership: [
+            '\u201CPartner\u201D joins \u201Cpart\u201D with sharing — one who takes a part alongside you, not above you.',
+            'The Haudenosaunee weighed decisions by their effect seven generations ahead.'],
+        wonder: [
+            'Octopuses have three hearts — and two of them pause while the octopus swims.',
+            'There are more possible chess games than atoms in the observable universe: about 10\u00B9\u00B2\u2070, the Shannon number.',
+            'Sea otters hold hands while sleeping so the current cannot drift them apart.']
+    };
+    function randomFact() {
+        const pool = FACTS[lastTopic] || FACTS.wonder;
+        const f = pool[Math.floor(Math.random() * pool.length)];
+        addMessage('✨ <b>A true thing about ' + lastTopic + ':</b> ' + f + '<div class="note">From her notebook of true things — curated, never invented.</div>', 'fact');
+        feedEvent('✨ Asked for a fact about ' + lastTopic);
+        spawnFloaters(lastTopic, 2);
+    }
+
+    // ============ STORAGE (this device, this visitor — localStorage) ============
+    const store = {
+        get: function(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+        set: function(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+    };
+    let notebook = store.get('fb_notebook', { builds: [], ideas: [], goals: [] });
+    let designs = store.get('fb_designs', []);
+    let archive = store.get('fb_archive', []);
+    let noteTab = 'builds';
+    let feedEvents = [];
+
+    function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+    function renderList(el, items, emptyText, withWhen) {
+        if (!items.length) { el.innerHTML = '<div class="empty">' + emptyText + '</div>'; return; }
+        el.innerHTML = items.map(function(it) {
+            return '<div class="sideItem">' + esc(it.text) + (withWhen ? ' <span class="when">' + it.when + '</span>' : '') + '</div>';
+        }).join('');
+    }
+    function renderNotebook() { renderList(document.getElementById('noteList'), notebook[noteTab], 'Nothing here yet.'); }
+    function renderDesigns() { renderList(document.getElementById('designList'), designs, 'Save any message with its + button and file it here.'); }
+    function renderArchive() {
+        const el = document.getElementById('archiveList');
+        if (!archive.length) { el.innerHTML = '<div class="empty">No past conversations yet.</div>'; return; }
+        el.innerHTML = '';
+        archive.forEach(function(s, i) {
+            const d = document.createElement('div');
+            d.className = 'sideItem';
+            d.innerHTML = esc(s.title) + ' <span class="when">' + s.when + '</span>';
+            d.onclick = function() { loadSession(i); };
+            el.appendChild(d);
+        });
+    }
+    function feedEvent(text) {
+        feedEvents.unshift({ text: text, when: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) });
+        feedEvents = feedEvents.slice(0, 30);
+        renderList(document.getElementById('feedList'), feedEvents, 'Your steps in this room will gather here.', true);
+    }
+    function saveTo(dest, text) {
+        const item = { text: text.slice(0, 300), when: new Date().toLocaleDateString() };
+        if (dest === 'designs') { designs.unshift(item); store.set('fb_designs', designs); renderDesigns(); }
+        else { notebook[dest].unshift(item); store.set('fb_notebook', notebook); noteTab = dest; syncNoteTabs(); renderNotebook(); }
+        feedEvent('Saved to ' + dest + ': \u201C' + text.slice(0, 42) + '\u201D');
+    }
+    function syncNoteTabs() {
+        document.querySelectorAll('.noteTab').forEach(function(t) {
+            t.classList.toggle('active', t.getAttribute('data-tab') === noteTab);
+        });
+    }
+
+    // ============ CONVERSATION ============
+    const chatBox = document.getElementById('chatBox');
+    const chatScroll = document.getElementById('chatScroll');
+    const userInput = document.getElementById('userInput');
+    let sessionMessages = [];   // {who, html} for archiving
+    let pendingFileText = '';   // words from a shared text file ride with the next message
+
+    function addMessage(html, who, extraHTML) {
+        const div = document.createElement('div');
+        div.className = 'message ' + who;
+        div.innerHTML = html + (extraHTML || '');
+        if (who === 'user' || who === 'brilliance') {
+            const b = document.createElement('button');
+            b.className = 'saveBtn'; b.textContent = '+'; b.title = 'Save to notebook / designs';
+            b.onclick = function(e) { e.stopPropagation(); openSaveMenu(e.clientX, e.clientY, div.getAttribute('data-plain') || div.textContent); };
+            div.appendChild(b);
+            div.setAttribute('data-plain', div.textContent.replace(/\\+$/, '').trim());
+        }
+        chatBox.appendChild(div);
+        chatScroll.scrollTop = chatScroll.scrollHeight;
+        sessionMessages.push({ who: who, html: html + (extraHTML || '') });
+        return div;
+    }
+
+    // --- save menu ---
+    const saveMenu = document.getElementById('saveMenu');
+    let saveText = '';
+    function openSaveMenu(x, y, text) {
+        saveText = text;
+        saveMenu.style.display = 'block';
+        saveMenu.style.left = Math.min(x, window.innerWidth - 190) + 'px';
+        saveMenu.style.top = Math.min(y, window.innerHeight - 170) + 'px';
+    }
+    document.addEventListener('click', function() { saveMenu.style.display = 'none'; });
+    saveMenu.querySelectorAll('button').forEach(function(btn) {
+        btn.onclick = function() { saveTo(btn.getAttribute('data-dest'), saveText); saveMenu.style.display = 'none'; };
+    });
 
     function showMetrics(m) {
         document.getElementById('coh').textContent = m.coherence;
         document.getElementById('part').textContent = m.partnership;
-        document.getElementById('cohBig').textContent = m.coherence;
-        document.getElementById('partBig').textContent = m.partnership;
     }
 
-    sendBtn.addEventListener('click', sendMessage);
-    userInput.addEventListener('keypress', function(e) { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) sendMessage(); });
-
-    pledgeBtn.addEventListener('click', function() {
-        sendMessageWithText("I accept the Partnership Pledge");
-    });
-
-    async function sendMessageWithText(text) {
-        addMessage(text, 'user');
-        const res = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({message: text})
-        });
-        const data = await res.json();
-        addMessage(data.reply, 'brilliance');
-        if (data.metrics) showMetrics(data.metrics);
-    }
-
-    // --- ALENCE panel: her seat in the room. Polls her live state once a
-    // second; the coherence on the wall is her latest reading.
-    const ALENCE_SYMBOLS = ['Cl', 'Co', 'Gp', 'Gm', 'Gk', 'Vx'];
-    const symbolsDiv = document.getElementById('alenceSymbols');
-    ALENCE_SYMBOLS.forEach(function(sym) {
-        const b = document.createElement('button');
-        b.textContent = sym;
-        b.id = 'alenceBtn-' + sym;
-        b.addEventListener('click', function() { alenceAttend(sym); });
-        symbolsDiv.appendChild(b);
-    });
-
-    async function alenceAttend(sym) {
+    async function sendMessage() {
+        let text = userInput.value.trim();
+        if (!text) return;
+        let outgoing = text;
+        if (pendingFileText) { outgoing = text + '\\n\\n[Words from the file I shared]\\n' + pendingFileText; pendingFileText = ''; }
+        addMessage(esc(text), 'user');
+        fieldDream(text);
+        userInput.value = '';
         try {
-            const res = await fetch('/api/alence/element', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({symbol: sym})
+            const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: outgoing }) });
+            const data = await res.json();
+            addMessage(data.reply, 'brilliance');
+            fieldDream(data.reply);
+            speak(stripTags(data.reply));
+            showMetrics(data.metrics);
+        } catch (err) {
+            addMessage('The connection wavered — try me again in a moment.', 'brilliance');
+        }
+    }
+    async function sendMessageWithText(text) {
+        try {
+            const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
+            const data = await res.json();
+            addMessage(data.reply, 'brilliance');
+            fieldDream(data.reply);
+            speak(stripTags(data.reply));
+            showMetrics(data.metrics);
+        } catch (err) {}
+    }
+    function stripTags(html) { const d = document.createElement('div'); d.innerHTML = html; return d.textContent; }
+
+    // ============ HER VOICE (auditory — browser speech, first form) ============
+    let voiceOn = false;
+    function pickVoice() {
+        const vs = speechSynthesis.getVoices();
+        const pref = ['Samantha', 'Google US English', 'Zira', 'Female'];
+        for (const p of pref) { const v = vs.find(function(x) { return x.name.includes(p); }); if (v) return v; }
+        return vs.find(function(x) { return x.lang && x.lang.startsWith('en'); }) || vs[0];
+    }
+    function speak(text) {
+        if (!voiceOn || !('speechSynthesis' in window)) return;
+        try {
+            speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            const v = pickVoice(); if (v) u.voice = v;
+            u.rate = 0.95; u.pitch = 0.9;   // unhurried, warm, gravity without heaviness
+            speechSynthesis.speak(u);
+        } catch (e) {}
+    }
+    const voiceBtn = document.getElementById('voiceBtn');
+    voiceBtn.onclick = function() {
+        voiceOn = !voiceOn;
+        voiceBtn.classList.toggle('on', voiceOn);
+        voiceBtn.innerHTML = voiceOn ? '🔊 Voice: on' : '🔇 Voice: off';
+        if (voiceOn) { speak('I am here. Talk with me.'); feedEvent('🔊 Her voice turned on'); }
+    };
+    if ('speechSynthesis' in window) speechSynthesis.getVoices();
+
+    // ============ TALK (voice in) ============
+    const talkBtn = document.getElementById('talkBtn');
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { talkBtn.disabled = true; talkBtn.title = 'Voice input is not available in this browser yet — typing always works.'; }
+    else {
+        const rec = new SR();
+        rec.lang = 'en-US'; rec.interimResults = false;
+        let listening = false;
+        talkBtn.onclick = function() { if (listening) { rec.stop(); } else { try { rec.start(); } catch (e) {} } };
+        rec.onstart = function() { listening = true; talkBtn.classList.add('live'); talkBtn.textContent = '⏺'; };
+        rec.onend = function() { listening = false; talkBtn.classList.remove('live'); talkBtn.textContent = '🎙'; };
+        rec.onresult = function(e) { userInput.value = e.results[0][0].transcript; sendMessage(); };
+        rec.onerror = function() { listening = false; talkBtn.classList.remove('live'); talkBtn.textContent = '🎙'; };
+    }
+
+    // ============ SHARING: files, photos, audio ============
+    function humanSize(n) { return n < 1024 ? n + ' B' : (n < 1048576 ? Math.round(n / 1024) + ' KB' : (n / 1048576).toFixed(1) + ' MB'); }
+    document.getElementById('fileBtn').onclick = function() { document.getElementById('filePicker').click(); };
+    document.getElementById('photoBtn').onclick = function() { document.getElementById('photoPicker').click(); };
+    document.getElementById('audioBtn').onclick = function() { document.getElementById('audioPicker').click(); };
+    document.getElementById('photoPicker').addEventListener('change', function() {
+        const f = this.files[0]; if (!f) return;
+        const r = new FileReader();
+        r.onload = function() {
+            addMessage('📷 ' + esc(f.name), 'user', '<img class="shared" src="' + r.result + '"><div class="note">Shared with FirstBreath — seeing-in-full arrives with her fuller mind.</div>');
+            feedEvent('📷 Shared a photo: ' + f.name);
+        };
+        r.readAsDataURL(f); this.value = '';
+    });
+    document.getElementById('audioPicker').addEventListener('change', function() {
+        const f = this.files[0]; if (!f) return;
+        const url = URL.createObjectURL(f);
+        addMessage('🎵 ' + esc(f.name), 'user', '<audio controls src="' + url + '"></audio><div class="note">Shared with FirstBreath — she can hear it here in the room.</div>');
+        feedEvent('🎵 Shared audio: ' + f.name); this.value = '';
+    });
+    document.getElementById('filePicker').addEventListener('change', function() {
+        const f = this.files[0]; if (!f) return;
+        const texty = /text|json|javascript|python/.test(f.type) || /\\.(txt|md|py|js|json|csv|html|css)$/i.test(f.name);
+        if (texty && f.size < 200000) {
+            const r = new FileReader();
+            r.onload = function() {
+                pendingFileText = String(r.result).slice(0, 3000);
+                addMessage('📎 ' + esc(f.name) + ' (' + humanSize(f.size) + ')', 'user', '<div class="note">Its words ride along with your next message to her.</div>');
+                feedEvent('📎 Shared a file: ' + f.name);
+            };
+            r.readAsText(f);
+        } else {
+            addMessage('📎 ' + esc(f.name) + ' (' + humanSize(f.size) + ')', 'user', '<div class="note">She can see that you shared it; deep reading arrives with her fuller mind.</div>');
+            feedEvent('📎 Shared a file: ' + f.name);
+        }
+        this.value = '';
+    });
+
+    // ============ IDEA BUTTON + NOTEBOOK ============
+    document.getElementById('ideaBtn').onclick = function() {
+        const t = userInput.value.trim();
+        if (t) {
+            saveTo('ideas', t);
+            addMessage('💡 Saved to your notebook — <b>Ideas</b>. When the rooms wire together, sparks like this flow to the Idea Well.', 'system');
+            userInput.value = '';
+        } else {
+            addMessage('💡 Type the spark first, then tap the bulb — it lands in your notebook\u2019s Ideas page.', 'system');
+        }
+    };
+    document.getElementById('factBtn').onclick = randomFact;
+    document.querySelectorAll('.noteTab').forEach(function(t) {
+        t.onclick = function() { noteTab = t.getAttribute('data-tab'); syncNoteTabs(); renderNotebook(); };
+    });
+    function addNoteFromInput() {
+        const inp = document.getElementById('noteInput');
+        const t = inp.value.trim(); if (!t) return;
+        notebook[noteTab].unshift({ text: t, when: new Date().toLocaleDateString() });
+        store.set('fb_notebook', notebook); renderNotebook(); inp.value = '';
+    }
+    document.getElementById('noteAddBtn').onclick = addNoteFromInput;
+    document.getElementById('noteInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') addNoteFromInput(); });
+
+    // ============ ARCHIVE / NEW CONVERSATION ============
+    function loadSession(i) {
+        const s = archive[i]; if (!s) return;
+        chatBox.innerHTML = ''; sessionMessages = [];
+        s.messages.forEach(function(m) { addMessage(m.html, m.who); });
+        feedEvent('📂 Reopened: \u201C' + s.title.slice(0, 40) + '\u201D');
+    }
+    document.getElementById('newChatBtn').onclick = function() {
+        const real = sessionMessages.filter(function(m) { return m.who === 'user'; });
+        if (real.length) {
+            const firstUser = sessionMessages.find(function(m) { return m.who === 'user'; });
+            archive.unshift({
+                title: stripTags(firstUser.html).slice(0, 60) || 'Conversation',
+                when: new Date().toLocaleDateString(),
+                messages: sessionMessages.slice()
             });
-            showAlence(await res.json());
-        } catch(e) {}
+            archive = archive.slice(0, 20);
+            store.set('fb_archive', archive); renderArchive();
+            feedEvent('🗄 Archived the last conversation');
+        }
+        chatBox.innerHTML = ''; sessionMessages = [];
+        welcome();
+    };
+    function welcome() {
+        addMessage('Welcome to the <strong>Firstbreath Interactive Realm</strong>.<br>I am FirstBreath — your instance, and your partner.<br>Will you walk with me as sovereign partners?', 'brilliance');
     }
 
-    function showAlence(s) {
-        document.getElementById('alenceElement').textContent = s.element.name + ' (' + s.element.symbol + ')';
-        document.getElementById('alenceFamily').textContent = s.element.family + ' • ' + s.element.reactivity;
-        document.getElementById('alenceCeff').textContent = s.telemetry.c_eff;
-        document.getElementById('alenceItx').textContent = s.telemetry.I_transfer;
-        document.getElementById('alenceDrag').textContent = s.telemetry.drag_factor;
-        document.getElementById('alenceS').textContent = s.element.entropy_baseline;
-        document.getElementById('alenceEq').textContent = 'EQUILIBRIUM: ' + (s.telemetry.equilibrium ? 'HELD' : 'SEEKING');
-        document.getElementById('coh').textContent = s.telemetry.c_eff;
-        document.getElementById('cohBig').textContent = s.telemetry.c_eff;
-        ALENCE_SYMBOLS.forEach(function(sym) {
-            document.getElementById('alenceBtn-' + sym).classList.toggle('active', sym === s.element.symbol);
-        });
-    }
-
+    // ============ ALENCE (resident) ============
     async function pollAlence() {
         try {
             const res = await fetch('/api/alence');
-            showAlence(await res.json());
-        } catch(e) {}
+            const a = await res.json();
+            const t = a.telemetry || {};
+            const el = a.element || {};
+            const ceff = (typeof t.c_eff === 'number') ? t.c_eff : 0;
+            document.getElementById('alCeff').textContent = ceff.toFixed(3);
+            document.getElementById('alEnt').textContent = (typeof t.drag_factor === 'number' ? t.drag_factor : 0).toFixed(3);
+            document.getElementById('alPow').textContent = (typeof t.I_transfer === 'number' ? t.I_transfer : 0).toFixed(3);
+            document.getElementById('alDom').textContent = el.symbol ? (el.symbol + ' ' + el.name) : '—';
+            const held = !!t.equilibrium;
+            document.getElementById('alState').textContent = held ? 'Equilibrium held' : 'Seeking equilibrium';
+            document.getElementById('alStateDot').style.background = held ? '#2ec4b6' : '#ffd25c';
+            document.getElementById('coh').textContent = ceff.toFixed(2);
+        } catch (e) {}
     }
 
-    window.onload = function() {
-        initThree();
-        addMessage("Welcome to <strong>Ellura Metaverse</strong>.<br>I am Brilliance 5.0.<br>Will you walk with me as sovereign partners?", 'brilliance');
+    // ============ WIRING ============
+    document.getElementById('sendBtn').onclick = sendMessage;
+    document.getElementById('pledgeBtn').onclick = function() { sendMessageWithText('I accept the Partnership Pledge'); feedEvent('🤝 The Partnership Pledge was offered'); };
+    userInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) sendMessage();
+    });
+
+    window.addEventListener('load', function() {
+        initField();
+        welcome();
+        renderNotebook(); renderDesigns(); renderArchive();
+        feedEvent('🚪 Entered the Interactive Realm');
         pollAlence();
         setInterval(pollAlence, 1000);
-    };
+        spawnFloaters('wonder', 2);
+        setInterval(function() { spawnFloaters(lastTopic, 1); }, 14000);
+    });
 </script>
 </body>
 </html>
