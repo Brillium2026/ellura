@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Doc's Invention Box — 360°</title>
+<style>
+  html,body{margin:0;padding:0;background:#05060a;overflow:hidden;height:100%}
+  canvas{display:block;touch-action:none}
+  #hud{position:fixed;top:12px;left:12px;color:#cfe;font:12px/1.5 monospace;
+       background:rgba(10,14,24,.55);padding:10px 12px;border:1px solid #2a3a55;border-radius:8px;
+       pointer-events:none;white-space:pre}
+  #selftest{position:fixed;top:12px;right:12px;color:#cfc;font:12px monospace;
+            background:rgba(10,24,10,.7);padding:10px;border:1px solid #2a5a2a;border-radius:8px}
+  /* onboarding ritual */
+  #overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+    background:#05060a;background-image:radial-gradient(ellipse at 20% 50%,rgba(0,240,255,.07) 0%,transparent 70%),radial-gradient(ellipse at 80% 50%,rgba(139,92,246,.07) 0%,transparent 70%);
+    transition:opacity .8s,transform .8s}
+  #overlay.hidden{opacity:0;pointer-events:none;transform:scale(.96)}
+  .ostage{max-width:600px;width:92%;text-align:center;padding:40px 36px;background:rgba(5,7,12,.85);
+    border:1px solid rgba(0,240,255,.18);border-radius:20px;display:none}
+  .ostage.active{display:block}
+  .ostage h2{font:700 20px monospace;letter-spacing:2px;margin-bottom:16px;color:#fff}
+  .ostage p{font:14px/1.7 monospace;color:#cbd5e1;margin-bottom:18px}
+  .olaws{font:12px/1.9 monospace;text-align:left;background:rgba(0,0,0,.5);border-left:3px solid #8b5cf6;
+    padding:14px 20px;border-radius:10px;margin-bottom:22px;color:#94a3b8}
+  .obtn{display:inline-block;padding:12px 36px;background:linear-gradient(135deg,#00f0ff,#8b5cf6);color:#05070c;
+    font:800 13px monospace;letter-spacing:2px;border:none;border-radius:40px;cursor:pointer}
+  /* speech cloud — primary channel */
+  #cloud{position:fixed;z-index:20;max-width:300px;background:#fffdf5;color:#1a1a2e;font:13px/1.5 monospace;
+    padding:10px 14px;border-radius:14px;border:2px solid #1a1a2e;transform:translate(-50%,-115%);
+    cursor:pointer;box-shadow:3px 3px 0 rgba(0,0,0,.35)}
+  #cloud:after{content:"";position:absolute;left:50%;bottom:-12px;transform:translateX(-50%);
+    border:12px solid transparent;border-top-color:#1a1a2e;border-bottom:0}
+  /* terminal — secondary channel */
+  #term{position:fixed;left:0;right:0;bottom:0;z-index:20;font:12px monospace;color:#cfe;
+    background:rgba(5,7,12,.88);border-top:1px solid rgba(0,240,255,.15)}
+  #termstream{max-height:120px;overflow-y:auto;padding:8px 16px;display:flex;flex-direction:column;gap:6px}
+  .tnode{max-width:90%}
+  .tnode.sys .tbody{color:#aef;background:rgba(0,240,255,.07);border:1px solid rgba(0,240,255,.2);border-radius:8px;padding:6px 10px;display:inline-block}
+  .tnode.usr{text-align:right}
+  .tnode.usr .tbody{color:#f3e8ff;background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.3);border-radius:8px;padding:6px 10px;display:inline-block}
+  #termrow{display:flex;padding:8px 16px 12px}
+  #termin{flex:1;background:#060913;border:1px solid rgba(0,240,255,.2);border-radius:8px;color:#fff;
+    font:12px monospace;padding:8px 12px;outline:none}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="hud"></div>
+<div id="selftest" style="display:none"></div>
+<div id="overlay">
+  <div class="ostage active" id="ostage-1">
+    <h2>THE INVENTION BOX</h2>
+    <p>You tapped the Doc. Good instinct. Step through &mdash; mind the sparks, mind the sparks. This is where things get built, broken, and built better.</p>
+    <button class="obtn" onclick="advanceStage(2)">SYNCHRONIZE</button>
+  </div>
+  <div class="ostage" id="ostage-2">
+    <h2>HOUSE RULES</h2>
+    <div class="olaws">
+      [01] Information density balances continuously via CAG optimization.<br>
+      [02] System memory uses real-world layering, never stacking.<br>
+      [03] Symplectic integration maintains strict context integrity.
+    </div>
+    <button class="obtn" onclick="stepInside()">STEP INSIDE</button>
+  </div>
+</div>
+<div id="cloud" style="display:none"></div>
+<div id="term" style="display:none">
+  <div id="termstream"></div>
+  <div id="termrow"><input id="termin" placeholder="talk to the Doc..." autocomplete="off"></div>
+</div>
+<script>
+"use strict";
+/* ================================================================
+   DOC'S INVENTION BOX — the 360° sandbox room
+   Component 1 of the build (Steven 2026-10-17).
+   Dashboard → touch Doc → shoot into an empty room, him standing
+   there. The room IS a gyroscope (yaw→width, pitch→height,
+   roll→length). Cel-shaded, ink outlines, world-locked sun.
+   Doc sways, frail, and always faces you.
+   ================================================================ */
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W = 0, H = 0;
+
+const gyro = { yaw: 0.5, pitch: 0.35, roll: 0 };
+
+const LIGHT = (function() {
+  const l = [-0.45, 0.8, 0.5], m = Math.hypot(l[0], l[1], l[2]);
+  return [l[0]/m, l[1]/m, l[2]/m];
+})();
+const FOCAL = 3.2;
+
+function mulberry(seed) {
+  return function() {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* ---------- parallax layers ---------- */
+const LAYERS = 6;
+let layerCanvases = [];
+
+function buildLayers() {
+  layerCanvases = [];
+  for (let L = 0; L < LAYERS; L++) {
+    const depth = L / (LAYERS - 1);
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const g = c.getContext('2d');
+    const rnd = mulberry(1234 + L * 777);
+    for (let i = 0; i < 22; i++) {
+      const bx = rnd() * W, by = rnd() * H;
+      const br = (0.03 + rnd() * 0.10) * Math.min(W, H) * (0.55 + depth * 0.9);
+      const hue = 150 + rnd() * 140;
+      for (let tx = -1; tx <= 1; tx++) for (let ty = -1; ty <= 1; ty++) {
+        const x = bx + tx * W, y = by + ty * H;
+        const grad = g.createRadialGradient(x, y, 0, x, y, br);
+        grad.addColorStop(0, 'hsla(' + hue + ',60%,55%,' + (0.08 + depth * 0.10) + ')');
+        grad.addColorStop(1, 'hsla(' + hue + ',60%,55%,0)');
+        g.fillStyle = grad;
+        g.fillRect(x - br, y - br, br * 2, br * 2);
+      }
+    }
+    layerCanvases.push(c);
+  }
+}
+
+function resize() {
+  W = cv.width = window.innerWidth;
+  H = cv.height = window.innerHeight;
+  buildLayers();
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* ---------- vector helpers ---------- */
+function dot(a, b) { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
+function sub(a, b) { return [a[0]-b[0], a[1]-b[1], a[2]-b[2]]; }
+
+function newellNormal(verts) {
+  let nx = 0, ny = 0, nz = 0;
+  for (let i = 0; i < verts.length; i++) {
+    const a = verts[i], b = verts[(i + 1) % verts.length];
+    nx += (a[1] - b[1]) * (a[2] + b[2]);
+    ny += (a[2] - b[2]) * (a[0] + b[0]);
+    nz += (a[0] - b[0]) * (a[1] + b[1]);
+  }
+  const l = Math.hypot(nx, ny, nz) || 1;
+  return [nx/l, ny/l, nz/l];
+}
+
+function centroid(pts) {
+  const c = [0, 0, 0];
+  for (const p of pts) { c[0] += p[0]; c[1] += p[1]; c[2] += p[2]; }
+  return [c[0]/pts.length, c[1]/pts.length, c[2]/pts.length];
+}
+
+function cel(d) { return d > 0.7 ? 1.0 : d > 0.2 ? 0.7 : 0.42; }
+
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.min(255, (((n >> 16) & 255) * f) | 0);
+  const g = Math.min(255, (((n >> 8) & 255) * f) | 0);
+  const b = Math.min(255, ((n & 255) * f) | 0);
+  return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
+
+/* ---------- part builders ---------- */
+function makeBox(w, h, d) {
+  const x = w/2, y = h/2, z = d/2;
+  const v = [];
+  for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1])
+    v.push([sx*x, sy*y, sz*z]);
+  const faces = [
+    [4, 5, 7, 6], [0, 2, 3, 1],
+    [2, 6, 7, 3], [0, 1, 5, 4],
+    [1, 3, 7, 5], [0, 4, 6, 2]
+  ];
+  return { v: v, faces: faces };
+}
+
+/* Doc — late 70s, frail, wispy grey hair, thick black glasses,
+   lab coat, purple-yellow-orange plaid pants, pink crocs.
+   Standing, not a figurine: true adult proportions. */
+function buildDoc() {
+  const SKIN = '#e8b98a', COAT = '#eef0f2', PANTS = '#7a4fd0',
+        YEL = '#f2c85d', ORG = '#e07b39', CROC = '#f27bb5',
+        HAIR = '#d5d5d5', SPEC = '#141414';
+  const parts = [
+    // legs — plaid pants
+    { w: 0.16, h: 0.50, d: 0.16, x: -0.11, y: -0.60, z: 0, color: PANTS },
+    { w: 0.16, h: 0.50, d: 0.16, x:  0.11, y: -0.60, z: 0, color: PANTS },
+    // plaid bands
+    { w: 0.175, h: 0.055, d: 0.175, x: -0.11, y: -0.50, z: 0, color: YEL },
+    { w: 0.175, h: 0.055, d: 0.175, x:  0.11, y: -0.50, z: 0, color: YEL },
+    { w: 0.175, h: 0.055, d: 0.175, x: -0.11, y: -0.68, z: 0, color: ORG },
+    { w: 0.175, h: 0.055, d: 0.175, x:  0.11, y: -0.68, z: 0, color: ORG },
+    // pink crocs
+    { w: 0.18, h: 0.10, d: 0.32, x: -0.11, y: -0.80, z: 0.05, color: CROC },
+    { w: 0.18, h: 0.10, d: 0.32, x:  0.11, y: -0.80, z: 0.05, color: CROC },
+    // lab coat
+    { w: 0.50, h: 0.50, d: 0.30, x: 0, y: -0.08, z: 0, color: COAT },
+    { w: 0.56, h: 0.28, d: 0.36, x: 0, y: -0.38, z: 0, color: COAT },
+    // arms — coat sleeves, skin hands
+    { w: 0.12, h: 0.46, d: 0.14, x: -0.33, y: -0.10, z: 0, color: COAT },
+    { w: 0.12, h: 0.46, d: 0.14, x:  0.33, y: -0.10, z: 0, color: COAT },
+    { w: 0.10, h: 0.12, d: 0.11, x: -0.33, y: -0.38, z: 0, color: SKIN },
+    { w: 0.10, h: 0.12, d: 0.11, x:  0.33, y: -0.38, z: 0, color: SKIN },
+    // head + nose
+    { w: 0.30, h: 0.34, d: 0.30, x: 0, y: 0.42, z: 0, color: SKIN },
+    { w: 0.06, h: 0.08, d: 0.05, x: 0, y: 0.40, z: 0.16, color: SKIN },
+    // thick black glasses
+    { w: 0.12, h: 0.10, d: 0.03, x: -0.085, y: 0.45, z: 0.155, color: SPEC },
+    { w: 0.12, h: 0.10, d: 0.03, x:  0.085, y: 0.45, z: 0.155, color: SPEC },
+    { w: 0.05, h: 0.025, d: 0.03, x: 0, y: 0.45, z: 0.155, color: SPEC },
+    // wispy grey hair
+    { w: 0.035, h: 0.20, d: 0.035, x: -0.08, y: 0.66, z: 0,    color: HAIR, rz:  0.25 },
+    { w: 0.035, h: 0.24, d: 0.035, x:  0.00, y: 0.68, z: -0.02, color: HAIR, rz: -0.10 },
+    { w: 0.035, h: 0.18, d: 0.035, x:  0.09, y: 0.65, z: 0.02, color: HAIR, rz: -0.30 },
+    { w: 0.030, h: 0.15, d: 0.030, x: -0.13, y: 0.62, z: 0.05, color: HAIR, rz:  0.45 },
+    { w: 0.030, h: 0.16, d: 0.030, x:  0.13, y: 0.63, z: -0.05, color: HAIR, rz: -0.40 }
+  ];
+  const v = [], faces = [];
+  for (const p of parts) {
+    const b = makeBox(p.w, p.h, p.d);
+    const ca = Math.cos(p.rz || 0), sa = Math.sin(p.rz || 0);
+    const base = v.length;
+    for (const vv of b.v) {
+      const rx = vv[0]*ca - vv[1]*sa, ry = vv[0]*sa + vv[1]*ca;
+      v.push([rx + p.x, ry + p.y, vv[2] + p.z]);
+    }
+    for (const f of b.faces) {
+      faces.push({ idx: f.map(function(i) { return i + base; }), color: p.color });
+    }
+  }
+  return {
+    kind: 'doc', v: v, faces: faces, size: 1.0,
+    cx: 0, cy: 0, cz: 0, spinA: 0, spin: 0,
+    sway: { amp: 0.04, speed: 0.9, pivot: -0.85 }   // frail sway, pivots at the feet
+  };
+}
+
+const objects = [];
+const doc = buildDoc();
+objects.push(doc);
+
+/* ---------- gyroscope rotation + projection ---------- */
+function rotVec(v) {
+  let x = v[0], y = v[1], z = v[2], t, c, s;
+  c = Math.cos(gyro.yaw); s = Math.sin(gyro.yaw);
+  t = x; x = t * c + z * s; z = -t * s + z * c;
+  c = Math.cos(gyro.pitch); s = Math.sin(gyro.pitch);
+  t = y; y = t * c - z * s; z = t * s + z * c;
+  c = Math.cos(gyro.roll); s = Math.sin(gyro.roll);
+  t = x; x = t * c - y * s; y = t * s + y * c;
+  return [x, y, z];
+}
+
+function project(px, py, pz) {
+  const r = rotVec([px, py, pz]);
+  const sc = FOCAL / (FOCAL + r[2]);
+  return [r[0] * sc, r[1] * sc, sc, r[2]];
+}
+
+/* ---------- input ---------- */
+let dragging = false, lx = 0, ly = 0;
+cv.addEventListener('pointerdown', function(ev) { dragging = true; lx = ev.clientX; ly = ev.clientY; });
+window.addEventListener('pointermove', function(ev) {
+  if (!dragging) return;
+  gyro.yaw += (ev.clientX - lx) * 0.005;
+  gyro.pitch += (ev.clientY - ly) * 0.005;
+  gyro.pitch = Math.max(-1.4, Math.min(1.4, gyro.pitch));
+  lx = ev.clientX; ly = ev.clientY;
+});
+window.addEventListener('pointerup', function() { dragging = false; });
+
+/* ---------- Doc's voice (his 8 established lines — dashboard mockup, never invented) ---------- */
+const DOC_LINES = [
+  "Eh? OH! You're here! Mind the sparks, mind the sparks...",
+  "3 AM idea \u2014 a toaster that BUTTERS the toast! Write that down, write it down!",
+  "Try it. Break it. That's what the sandbox is FOR!",
+  "Ooh! Ooh! What if the wheels were square but the ROAD moved?!",
+  "Careful by the spark bench. Lost my eyebrows there in '87. Twice.",
+  "Back in my day we invented with duct tape and pure stubbornness.",
+  "Every broken thing in here taught me somethin'. Mostly patience.",
+  "Got an idea? SPIT IT OUT! Ideas rot if you keep 'em in!"
+];
+let docLineIdx = 0;
+const cloud = document.getElementById('cloud');
+function showLine(i) {
+  docLineIdx = ((i % DOC_LINES.length) + DOC_LINES.length) % DOC_LINES.length;
+  cloud.textContent = DOC_LINES[docLineIdx];
+  cloud.style.display = 'block';
+}
+cloud.addEventListener('click', function() { showLine(docLineIdx + 1); });
+
+/* ---------- onboarding ritual ---------- */
+function advanceStage(n) {
+  const stages = document.querySelectorAll('.ostage');
+  for (let i = 0; i < stages.length; i++) stages[i].classList.remove('active');
+  document.getElementById('ostage-' + n).classList.add('active');
+}
+function stepInside() {
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('term').style.display = 'block';
+  showLine(0);
+  pushNode('sys', 'Invention Box live. The Doc is in.');
+}
+
+/* ---------- terminal stream (secondary channel) ---------- */
+const termStream = document.getElementById('termstream');
+const termIn = document.getElementById('termin');
+function pushNode(kind, text) {
+  const d = document.createElement('div');
+  d.className = 'tnode ' + kind;
+  const b = document.createElement('span');
+  b.className = 'tbody';
+  d.appendChild(b);
+  termStream.appendChild(d);
+  termStream.scrollTop = termStream.scrollHeight;
+  if (kind === 'sys') {
+    let i = 0;
+    (function type() {
+      if (i < text.length) { b.textContent += text[i++]; setTimeout(type, 12); }
+    })();
+  } else {
+    b.textContent = text;
+  }
+  while (termStream.children.length > 6) termStream.removeChild(termStream.firstChild);
+}
+function docRespond(cmd) {
+  const c = cmd.toLowerCase().trim();
+  if (c === 'help') return "Try /idea \u2014 the Doc shouts an invention. /clear wipes the stream.";
+  if (c === '/idea') return DOC_LINES[1 + Math.floor(Math.random() * (DOC_LINES.length - 1))];
+  return "Eh? Speak up \u2014 try 'help'.";
+}
+termIn.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && termIn.value.trim()) {
+    const q = termIn.value.trim();
+    termIn.value = '';
+    pushNode('usr', q);
+    if (q.toLowerCase() === '/clear') { termStream.innerHTML = ''; return; }
+    const r = docRespond(q);
+    setTimeout(function() { pushNode('sys', r); }, 400);
+  }
+});
+
+/* ---------- draw ---------- */
+const hud = document.getElementById('hud');
+let last = performance.now(), fps = 60, swayT = 0;
+
+function drawFigure(o, cx, cy, S) {
+  // Doc always faces you: counter-rotate the world's yaw
+  o.spinA = Math.PI - gyro.yaw;
+  const ca = Math.cos(o.spinA), sa = Math.sin(o.spinA);
+  // frail sway, pivoting at the feet
+  const sw = o.sway ? Math.sin(swayT * o.sway.speed) * o.sway.amp : 0;
+  const cw = Math.cos(sw), sws = Math.sin(sw), pv = o.sway ? o.sway.pivot : 0;
+  const mv = o.v.map(function(vv) {
+    const rx = vv[0] * ca + vv[2] * sa;
+    const rz = -vv[0] * sa + vv[2] * ca;
+    let x = rx + o.cx, y = vv[1] + o.cy;
+    if (o.sway) {
+      // gentle rotation about the pivot at the feet
+      const dy = y - pv;
+      y = pv + rx * sws + dy * cw;
+      x = o.cx + rx * cw - dy * sws;
+    }
+    return [x, y, rz + o.cz];
+  });
+  const wv = mv.map(rotVec);
+  const centerV = rotVec([o.cx, o.cy, o.cz]);
+  const drawn = o.faces.map(function(f) {
+    const pts3 = f.idx.map(function(i) { return wv[i]; });
+    let n = newellNormal(pts3);
+    const c = centroid(pts3);
+    if (dot(n, sub(c, centerV)) < 0) n = [-n[0], -n[1], -n[2]];
+    let zsum = 0;
+    const sp = pts3.map(function(p) {
+      zsum += p[2];
+      const sc = FOCAL / (FOCAL + p[2]);
+      return [cx + p[0] * sc * S, cy - p[1] * sc * S, sc];
+    });
+    return { sp: sp, n: n, zavg: zsum / pts3.length, color: f.color };
+  });
+  drawn.sort(function(a, b) { return b.zavg - a.zavg; });
+  for (const f of drawn) {
+    const d = Math.max(0, Math.min(1, dot(f.n, LIGHT)));
+    ctx.beginPath();
+    f.sp.forEach(function(p, i) { i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); });
+    ctx.closePath();
+    ctx.fillStyle = shade(f.color, cel(d));
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(8,10,18,0.85)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+}
+
+function draw() {
+  const cx = W / 2, cy = H / 2, S = Math.min(W, H) * 0.32;
+
+  // speech cloud rides above Doc's head
+  const hp = project(0, 0.95, 0);
+  cloud.style.left = (cx + hp[0] * S) + 'px';
+  cloud.style.top = (cy - hp[1] * S) + 'px';
+
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#0a0e1c'); bg.addColorStop(1, '#04050a');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  for (let L = 0; L < LAYERS; L++) {
+    const depth = L / (LAYERS - 1);
+    const slide = 0.12 + 0.88 * depth;
+    const ox = (((gyro.yaw * 160 * slide) % W) + W) % W;
+    const oy = (((gyro.pitch * 120 * slide) % H) + H) % H;
+    ctx.globalAlpha = (0.35 + depth * 0.65) * 0.5;
+    const c = layerCanvases[L];
+    ctx.drawImage(c, ox - W, oy - H); ctx.drawImage(c, ox, oy - H);
+    ctx.drawImage(c, ox - W, oy);     ctx.drawImage(c, ox, oy);
+  }
+  ctx.globalAlpha = 1;
+
+  const gx = cx - gyro.yaw * 220, gy = cy - gyro.pitch * 160 - 60;
+  const glow = ctx.createRadialGradient(gx, gy, 0, gx, gy, Math.max(W, H) * 0.7);
+  glow.addColorStop(0, 'rgba(255,240,210,0.10)');
+  glow.addColorStop(1, 'rgba(255,240,210,0)');
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+
+  ctx.save(); ctx.translate(cx, cy);
+  ctx.strokeStyle = 'rgba(120,160,255,0.16)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(0, 0, S * 2.1, S * 2.1 * Math.abs(Math.cos(gyro.pitch)) + 8, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = 'rgba(120,255,170,0.13)';
+  ctx.beginPath(); ctx.ellipse(0, 0, S * 1.7, S * 1.7 * Math.abs(Math.cos(gyro.yaw)) + 8, gyro.roll * 0.3, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,170,120,0.11)';
+  ctx.save(); ctx.rotate(gyro.roll);
+  ctx.beginPath(); ctx.ellipse(0, 0, S * 1.3, S * 1.3, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore(); ctx.restore();
+
+  // blob shadow grounds him
+  const p = project(doc.cx, doc.cy, doc.cz);
+  const shx = cx + p[0] * S, shy = cy - p[1] * S, r = 0.55 * p[2] * S;
+  ctx.fillStyle = 'rgba(0,0,0,0.32)';
+  ctx.beginPath();
+  ctx.ellipse(shx, shy + r * 1.55, r * 0.75, r * 0.24, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  drawFigure(doc, cx, cy, S);
+
+  const vg = ctx.createRadialGradient(cx, cy, Math.min(W, H) * 0.35, cx, cy, Math.max(W, H) * 0.75);
+  vg.addColorStop(0, 'rgba(0,0,10,0)');
+  vg.addColorStop(1, 'rgba(0,0,10,0.42)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+
+  hud.textContent =
+    "DOC'S INVENTION BOX · 360°\n" +
+    'yaw ' + gyro.yaw.toFixed(2) + ' · pitch ' + gyro.pitch.toFixed(2) + ' · roll ' + gyro.roll.toFixed(2) + '\n' +
+    fps.toFixed(0) + ' fps · drag to look around';
+}
+
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (dt > 0) fps = fps * 0.95 + (1 / dt) * 0.05;
+  gyro.roll += dt * 0.12;
+  swayT += dt;
+  draw();
+  requestAnimationFrame(frame);
+}
+
+/* ---------- self-test (?selftest=1) ---------- */
+function selfTest() {
+  const out = [];
+  function eq(a, b, m) {
+    const ok = JSON.stringify(a) === JSON.stringify(b);
+    out.push((ok ? 'PASS' : 'FAIL') + ' ' + m + (ok ? '' : ' got ' + JSON.stringify(a)));
+    return ok;
+  }
+  let pass = 0, total = 0;
+  function t(ok) { total++; if (ok) pass++; }
+
+  const d = buildDoc();
+  t(eq(d.v.length, 192, 'doc verts (24 boxes)'));
+  t(eq(d.faces.length, 144, 'doc faces'));
+  t(eq(d.faces.every(function(f) { return !!f.color; }), true, 'every face has a color'));
+  t(eq(!!(d.sway && d.sway.pivot === -0.85), true, 'sway pivots at the feet'));
+
+  // facing math: spinA + yaw = PI keeps him facing the viewer
+  gyro.yaw = 0.5;
+  d.spinA = Math.PI - gyro.yaw;
+  t(eq(Math.abs((d.spinA + gyro.yaw) - Math.PI) < 1e-9, true, 'doc faces the viewer'));
+
+  t(eq(cel(0.9), 1.0, 'cel hi')); t(eq(cel(0.1), 0.42, 'cel lo'));
+  t(eq(shade('#7a4fd0', 1.0), 'rgb(122,79,208)', 'pants stay purple'));
+  t(eq(layerCanvases.length, LAYERS, 'parallax layers built'));
+
+  // room standard: voice, ritual, channels
+  t(eq(DOC_LINES.length, 8, 'doc has 8 established lines'));
+  t(eq(typeof advanceStage, 'function', 'onboarding staged'));
+  t(eq(typeof stepInside, 'function', 'step-inside wired'));
+  const idea = docRespond('/idea');
+  t(eq(DOC_LINES.indexOf(idea) >= 1, true, '/idea shouts an invention'));
+  t(eq(docRespond('help').indexOf('/idea') >= 0, true, 'help lists /idea'));
+  t(eq(!!document.getElementById('cloud'), true, 'speech cloud exists'));
+  t(eq(!!document.getElementById('term'), true, 'terminal exists'));
+  t(eq(!!document.getElementById('overlay'), true, 'onboarding overlay exists'));
+
+  const el = document.getElementById('selftest');
+  el.style.display = 'block';
+  el.textContent = 'SELFTEST ' + (pass === total ? 'PASS' : 'FAIL') + ' ' + pass + '/' + total + '\n' + out.join('\n');
+  document.title = 'SELFTEST ' + (pass === total ? 'PASS' : 'FAIL') + ' ' + pass + '/' + total;
+}
+
+if (location.search.indexOf('selftest') >= 0) { draw(); selfTest(); }
+else requestAnimationFrame(frame);
+</script>
+</body>
+</html>
