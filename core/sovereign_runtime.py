@@ -1,4 +1,4 @@
-v"""
+"""
 Ellura Sovereign Runtime — one complete system.
 
 This is the unified assembly of everything in the Ellura project: not a
@@ -25,10 +25,14 @@ The runtime is deterministic, local, and self-verifying — the opposite of a
 corporate black-box endpoint.
 """
 
+import json
 import math
+import os
 import struct
+import time
 
 from .bug_sandbox import BugSandbox
+from .firstbreath_database import FirstbreathDatabase
 from .kinetic_throughput import KineticThroughput
 from .guardian import GuardianInvariant
 from .drift_band import DriftBandV2
@@ -128,6 +132,13 @@ class _StdlibAdapter:
 class SovereignRuntime:
     def __init__(self, dimension=4, dt=0.01, data_dir="data",
                  physics="auto", r_star=None):
+        self.data_dir = os.path.abspath(data_dir)
+        os.makedirs(self.data_dir, exist_ok=True)
+
+        self.db = FirstbreathDatabase(
+            os.path.join(self.data_dir, "firstbreath_substrate.db")
+        )
+
         self.sandbox = BugSandbox()
         self.throughput = KineticThroughput()
         self.guardian = GuardianInvariant()
@@ -153,6 +164,69 @@ class SovereignRuntime:
                           "lagrangian": 0.0, "delta": 0.0}
         # Seal the genesis checkpoint before any integration occurs.
         self.guardian.seal_checkpoint(self._state_bytes(), self.tau)
+        self.persist_agent_state(
+            agent_id="sovereign_runtime",
+            metadata={"phase": "initialized", "physics": self.physics},
+        )
+        self.record_session_memory(
+            "runtime:bootstrap",
+            {"event": "runtime_initialized", "tau": self.tau, "physics": self.physics},
+        )
+
+    def close(self):
+        if hasattr(self, "db") and self.db is not None:
+            self.db.close()
+
+    def persist_agent_state(self, agent_id="sovereign_runtime", metadata=None):
+        state_vector = self.adapter.floats()
+        payload = {
+            "agent_id": agent_id,
+            "tau": self.tau,
+            "dimension": self.dimension,
+            "physics": self.physics,
+            "state_vector": state_vector,
+        }
+        if metadata is None:
+            metadata = {}
+        cursor = self.db.conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO agent_state (agent_id, state_vector, timestamp, metadata)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(agent_id)
+            DO UPDATE SET
+                state_vector = excluded.state_vector,
+                timestamp = excluded.timestamp,
+                metadata = excluded.metadata
+            """,
+            (
+                agent_id,
+                json.dumps(payload["state_vector"]),
+                time.time(),
+                json.dumps(metadata),
+            ),
+        )
+        self.db.conn.commit()
+        cursor.close()
+        return payload
+
+    def record_session_memory(self, session_key, event_data):
+        if session_key is None:
+            return None
+        if not isinstance(event_data, str):
+            event_data = json.dumps(event_data, default=str)
+        cursor = self.db.conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO session_memory (session_key, event_data, timestamp)
+            VALUES (?, ?, ?)
+            """,
+            (session_key, event_data, time.time()),
+        )
+        self.db.conn.commit()
+        row_id = cursor.lastrowid
+        cursor.close()
+        return row_id
 
     # -- state ---------------------------------------------------------
     def _state_bytes(self) -> bytes:
@@ -217,6 +291,10 @@ class SovereignRuntime:
         if not self.guardian.verify_current(self._state_bytes(), self.tau):
             state_bytes, tau = self.guardian.rollback()
             self._restore(state_bytes, tau)
+            self.record_session_memory(
+                "runtime:guardian_mismatch",
+                {"event": "rollback", "tau": self.tau, "restored_tau": tau},
+            )
             return {
                 "status": "rolled_back",
                 "reason": "guardian_mismatch",
@@ -232,7 +310,13 @@ class SovereignRuntime:
         # 4. Drift band.
         drift_res = self.drift.evaluate(t_pred, t + v, v)
         if drift_res["breached"]:
-            return self.purge_as_mercy(drift_res["delta"])
+            result = self.purge_as_mercy(drift_res["delta"])
+            self.record_session_memory(
+                "runtime:purge",
+                {"event": "purge_as_mercy", "tau": self.tau, "delta": drift_res["delta"]},
+            )
+            self.persist_agent_state(metadata={"phase": "purged", "delta": drift_res["delta"]})
+            return result
 
         # 6. Telemetry + 3. seal the new checkpoint.
         self.throughput.record(t, v)
@@ -244,9 +328,28 @@ class SovereignRuntime:
             "lagrangian": t - v,
             "delta": drift_res["delta"],
         }
+        self.persist_agent_state(
+            agent_id="sovereign_runtime",
+            metadata={
+                "phase": "cycle",
+                "cycle": self.cycles,
+                "delta": drift_res["delta"],
+            },
+        )
+        self.record_session_memory(
+            "runtime:cycle",
+            {
+                "event": "accepted",
+                "cycle": self.cycles,
+                "tau": self.tau,
+                "kinetic": t,
+                "potential": v,
+                "delta": drift_res["delta"],
+            },
+        )
         return {
             "status": "accepted",
-            "tau": round(tau, 6),
+            "tau": round(self.tau, 6),
             "cycle": self.cycles,
             "kinetic": round(t, 6),
             "potential": round(v, 6),
@@ -260,6 +363,10 @@ class SovereignRuntime:
         """Layer 1 gate, then a full hardened cycle."""
         gate = self.sandbox.evaluate_threat(text)
         self.last_gate = {"verdict": gate["verdict"], "h_cov": gate["h_cov"]}
+        self.record_session_memory(
+            "runtime:input",
+            {"event": "input_processed", "verdict": gate["verdict"], "h_cov": gate["h_cov"], "text": text},
+        )
         if gate["verdict"] == "immune_deny":
             return {
                 "status": "immune_deny",
