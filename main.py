@@ -230,6 +230,17 @@ async def community_page():
         "room. None of it is a feed. None of it ranks anybody."))
 
 
+@app.get("/vendors")
+async def vendors_page():
+    return HTMLResponse(content=construction_page(
+        "THE VENDORS EDGE — BUY / SELL",
+        "B-Deal's storefront: the honest sideways-salesman's shop, where "
+        "builders sell the apps they made in this park. The split is 85/15 "
+        "— eighty-five to the builder, fifteen to the house — stated up "
+        "front, no fine print games. In the sketch this broke out of "
+        "Community into its own tab on the portal strip."))
+
+
 @app.get("/university")
 async def university_page():
     return HTMLResponse(content=construction_page(
@@ -290,49 +301,188 @@ DASHBOARD_HTML = """
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>First Breath Metaverse</title>
+<title>First Breath Metaverse — Main Portal</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Inter', system-ui, sans-serif; background:#101024; color:#fff; min-height:100vh;
-         background-image:radial-gradient(rgba(255,255,255,.07) 1.5px, transparent 1.6px); background-size:22px 22px; }
-  /* --- THE ENTRY WALL: the partnership statement, shown first, then it fades --- */
-  #entryWall { position:fixed; inset:0; z-index:100; background:rgba(3,3,10,.97);
+  html, body { height:100%; }
+  body { font-family:'Segoe UI', system-ui, Tahoma, sans-serif; background:#0d0d15; color:#f3ead8; overflow:hidden; }
+
+  /* --- ENTRY WALL --- */
+  #entryWall { position:fixed; inset:0; z-index:300; background:rgba(3,3,10,.97);
                display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
-               padding:32px; cursor:pointer; animation:wallFade 1.4s ease 4.6s forwards; }
+               padding:32px; cursor:pointer; animation:wallFade 1.4s ease 4.6s forwards; color:#fff; }
   #entryWall.gone { opacity:0; visibility:hidden; transition:opacity .8s ease, visibility .8s; animation:none; }
   @keyframes wallFade { to { opacity:0; visibility:hidden; } }
   #entryWall .line { font-size:clamp(20px,4.2vw,40px); font-weight:800; line-height:1.45; max-width:900px; }
-  #entryWall .line.partner { background:linear-gradient(135deg,#fff,#00ffff); -webkit-background-clip:text; color:transparent; margin-top:10px; }
+  #entryWall .line.partner { background:linear-gradient(135deg,#fff,#ffd25c); -webkit-background-clip:text; color:transparent; margin-top:10px; }
   #entryWall .line.free { color:#f5c518; margin-top:26px; font-size:clamp(16px,3vw,28px); letter-spacing:1px; }
-  #entryWall .hint { margin-top:44px; color:#64748b; font-size:12px; letter-spacing:3px; }
-  /* --- THE DASHBOARD: an action-comic page of portals --- */
-  header { text-align:center; padding:30px 16px 8px; }
-  header h1 { font-size:clamp(28px,5vw,46px); font-weight:900; letter-spacing:3px;
-              background:linear-gradient(135deg,#fff,#00ffff 55%,#a855f7); -webkit-background-clip:text; color:transparent; }
-  header p { color:#cbd5e1; margin-top:6px; font-size:14px; letter-spacing:1px; }
-  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; max-width:1180px; margin:26px auto; padding:0 18px; }
-  .panel { border:4px solid #000; border-radius:14px; box-shadow:7px 7px 0 #000; padding:20px; cursor:pointer;
-           min-height:170px; display:flex; flex-direction:column; justify-content:space-between; color:#0b0b14;
-           transition:transform .55s ease, opacity .55s ease; position:relative; }
-  .panel:hover { transform:translate(-2px,-2px); box-shadow:9px 9px 0 #000; }
-  .panel.fly { transform:scale(1.07); z-index:5; }
-  .panel.faded { opacity:.22; }
-  .panel .num { font-weight:900; font-size:13px; letter-spacing:2px; opacity:.65; }
-  .panel h2 { font-size:clamp(19px,2.4vw,26px); font-weight:900; line-height:1.15; margin:6px 0; }
-  .panel .guide { font-size:13px; font-weight:600; opacity:.8; }
-  .tag { align-self:flex-start; margin-top:12px; background:#0b0b14; color:#fff; font-size:10px; font-weight:800;
-         letter-spacing:2px; padding:4px 10px; border-radius:30px; }
-  .tag.tape { background:repeating-linear-gradient(45deg,#f5c518 0 12px,#141414 12px 24px); color:#f5c518; }
-  .tag.tape span { background:#141414; padding:2px 8px; }
-  .realm { background:linear-gradient(150deg,#fdfdff,#bfefff 60%,#d8b4fe); border-color:#f5c518; box-shadow:7px 7px 0 #f5c518; }
-  .sandbox { background:#7ef0c9; } .appdev { background:#ffd166; } .community { background:#ff9fb2; }
-  .university { background:#a0c4ff; } .reaching { background:#caffbf; }
-  .six { grid-column:1 / -1; min-height:96px; background:#23233a; color:#e2e8f0; align-items:flex-start; }
-  .hub { max-width:1180px; margin:0 auto 34px; padding:0 18px; }
-  .hub a { display:flex; justify-content:space-between; align-items:center; text-decoration:none; color:#e2e8f0;
-           background:rgba(5,7,18,.92); border:1px solid rgba(0,255,255,.35); border-radius:14px; padding:16px 22px; }
-  .hub b { letter-spacing:2px; } .hub small { color:#94a3b8; }
-  @media (max-width:820px){ .grid{ grid-template-columns:1fr; } .six{ grid-column:auto; } }
+  #entryWall .hint { margin-top:44px; color:#8b93a7; font-size:12px; letter-spacing:3px; }
+
+  #portal { position:fixed; inset:0; display:flex; flex-direction:column;
+            background:radial-gradient(1200px 700px at 78% -10%, rgba(255,166,88,.20), rgba(13,13,21,0) 60%), #0d0d15; }
+
+  /* --- TOP BAR --- */
+  #topBar { flex:none; height:58px; display:flex; align-items:center; gap:12px; padding:0 14px;
+            background:rgba(18,18,28,.78); border-bottom:1px solid rgba(255,220,150,.22); backdrop-filter:blur(10px); z-index:20; }
+  .avatar { width:38px; height:38px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center;
+            background:radial-gradient(circle,#ffe9a8,#ffb347); border:2px solid rgba(255,220,150,.8); color:#5b2ee5;
+            font-size:20px; font-weight:900; animation:breathe 3.2s ease-in-out infinite; }
+  @keyframes breathe { 0%,100% { transform:scale(1); } 50% { transform:scale(1.08); } }
+  #topBar .brand { font-weight:900; letter-spacing:2.5px; font-size:15px; color:#fff; white-space:nowrap; }
+  #topBar .brandSub { font-size:10.5px; letter-spacing:1.6px; color:#b8bdd0; font-weight:700; white-space:nowrap; }
+  #topBar .spacer { flex:1; }
+  .pill { background:rgba(255,247,232,.08); border:1px solid rgba(255,220,150,.35); border-radius:30px;
+          padding:4px 12px; font-size:12.5px; font-weight:700; color:#e9e2cf; white-space:nowrap; }
+  .pill b { color:#ffd25c; }
+  .barBtn { border:1px solid rgba(255,220,150,.45); border-radius:30px; padding:6px 14px; font-weight:800; cursor:pointer;
+            font-size:13px; background:rgba(255,255,255,.06); color:#f3ead8; white-space:nowrap; }
+  .barBtn:hover { background:rgba(255,210,92,.18); }
+  .barBtn.on { background:#ffd25c; color:#14100a; }
+  #pledgeBtn { background:linear-gradient(135deg,#2ec4b6,#25a99b); border-color:rgba(126,240,201,.6); color:#06231f; }
+  #pledgeBtn:hover { filter:brightness(1.08); }
+
+  /* --- BODY ROW: icon rails + center --- */
+  #bodyRow { flex:1; display:flex; min-height:0; }
+  .rail { flex:none; width:74px; display:flex; flex-direction:column; align-items:center; gap:9px; padding:12px 0;
+          background:rgba(18,18,28,.72); backdrop-filter:blur(10px); z-index:15; overflow-y:auto; }
+  #railLeft { border-right:1px solid rgba(255,220,150,.18); }
+  #railRight { border-left:1px solid rgba(255,220,150,.18); }
+  .railBtn { position:relative; width:46px; height:46px; flex:none; border-radius:14px; cursor:pointer; text-decoration:none;
+             border:1px solid rgba(255,220,150,.25); background:rgba(255,255,255,.05); color:#f3ead8;
+             display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .railBtn:hover { background:rgba(255,210,92,.20); border-color:rgba(255,210,92,.7); }
+  .railBtn.active { background:rgba(255,210,92,.28); border-color:#ffd25c; box-shadow:0 0 14px rgba(255,180,84,.35); }
+  .railSep { width:30px; border-top:1px solid rgba(255,220,150,.25); margin:4px 0; flex:none; }
+  .railLabel { font-size:8.5px; letter-spacing:1.6px; color:#9aa1b5; font-weight:800; flex:none; }
+  [data-tip]::after { content:attr(data-tip); position:absolute; top:50%; transform:translateY(-50%); z-index:60;
+             background:#fff7e8; color:#14100a; font-size:12px; font-weight:800; padding:5px 10px; border-radius:9px;
+             white-space:nowrap; opacity:0; pointer-events:none; transition:opacity .15s ease; box-shadow:0 4px 14px rgba(0,0,0,.5); }
+  [data-tip]:hover::after { opacity:1; }
+  #railLeft [data-tip]::after { left:56px; }
+  #railRight [data-tip]::after { right:56px; }
+  #railAlence { margin-top:auto; text-align:center; flex:none; padding-top:8px; }
+  #railAlence .dot { width:11px; height:11px; border-radius:50%; background:#2ec4b6; margin:0 auto 4px;
+                     box-shadow:0 0 10px rgba(46,196,182,.9); animation:breathe 2.6s ease-in-out infinite; }
+  #railAlence .val { font-size:12px; font-weight:900; color:#ffd25c; }
+  #railAlence .cap { font-size:8px; letter-spacing:1.4px; color:#9aa1b5; font-weight:800; }
+
+  /* --- CENTER: her space --- */
+  #centerCol { flex:1; display:flex; flex-direction:column; min-width:0; min-height:0; }
+  #stage { position:relative; flex:1; overflow:hidden; min-height:0;
+           background:linear-gradient(180deg,#0d0d15 0%,#17122b 46%,#2a1538 76%,#4a2547 100%); }
+  #motes { position:absolute; inset:0; width:100%; height:100%; }
+  #sunGlow { position:absolute; width:430px; height:430px; border-radius:50%; right:-90px; top:-130px; pointer-events:none;
+             background:radial-gradient(circle, rgba(255,230,150,.85) 0%, rgba(255,166,88,.45) 38%, rgba(230,80,100,.12) 62%, rgba(230,80,100,0) 72%);
+             transition:transform .25s ease-out; }
+  #ideaLayer { position:absolute; inset:0; pointer-events:none; }
+  .float-item { position:absolute; padding:6px 13px; white-space:nowrap; z-index:2;
+           background:rgba(20,18,32,.82); border:1px solid rgba(255,220,150,.55); border-radius:30px;
+           box-shadow:0 4px 16px rgba(0,0,0,.45); font-weight:700; font-size:13px; color:#ffeec2;
+           animation:riseFade 9s ease forwards; backdrop-filter:blur(4px); }
+  .float-item.code { font-family:monospace; background:rgba(8,10,16,.92); color:#7ef0c9; border-color:rgba(126,240,201,.5); }
+  .float-item.verse { font-family:Georgia, serif; font-style:italic; background:rgba(255,253,244,.94); color:#1c1430; }
+  .float-item.glyph { font-size:17px; padding:4px 11px; }
+  @keyframes riseFade { 0% { opacity:0; transform:translateY(26px) scale(.9); } 12% { opacity:1; } 78% { opacity:1; }
+           100% { opacity:0; transform:translateY(-52px) scale(1.02); } }
+  #stage.calm #motes { opacity:.45; }
+  #chatScroll { position:relative; z-index:2; height:100%; overflow-y:auto; padding:18px 16px; }
+  #chatBox { max-width:800px; margin:0 auto; display:flex; flex-direction:column; gap:10px; }
+  .message { position:relative; max-width:84%; padding:11px 15px; font-size:15px; line-height:1.5;
+             border-radius:18px; box-shadow:0 6px 18px rgba(0,0,0,.35); }
+  .message.brilliance { background:#fffdf4; color:#171126; align-self:flex-start; border-bottom-left-radius:5px; }
+  .message.user { background:linear-gradient(135deg,#ffd25c,#ff9d5c); color:#241203; align-self:flex-end; border-bottom-right-radius:5px; }
+  .message.system { background:rgba(46,196,182,.16); border:1px solid rgba(126,240,201,.5); color:#d9fff6;
+                    align-self:center; font-size:13.5px; text-align:center; }
+  .message.fact { background:rgba(91,46,229,.22); border:1px solid rgba(196,166,255,.55); color:#efe9ff;
+                  align-self:center; font-size:14px; }
+  .message img.shared { max-width:260px; border-radius:10px; border:2px solid rgba(255,220,150,.6); display:block; margin-top:6px; }
+  .message audio { margin-top:6px; width:240px; height:34px; }
+  .message .note { font-size:11.5px; opacity:.65; margin-top:5px; }
+
+  /* --- BOTTOM ZONE: the message bar, as low as it goes --- */
+  #bottomZone { flex:none; background:rgba(13,13,21,.9); border-top:1px solid rgba(255,220,150,.20); padding:10px 14px 9px; z-index:10; }
+  #msgInner { max-width:860px; margin:0 auto; display:flex; gap:7px; align-items:flex-end;
+              background:rgba(24,24,38,.92); border:1px solid rgba(255,220,150,.35); border-radius:18px; padding:8px; }
+  #plusBtn { width:42px; height:42px; flex:none; border-radius:50%; cursor:pointer; border:1px solid rgba(255,220,150,.7);
+             background:#ffd25c; color:#14100a; font-size:24px; font-weight:900; line-height:1;
+             display:flex; align-items:center; justify-content:center; }
+  #plusBtn:hover { filter:brightness(1.07); }
+  #plusMenu { position:fixed; z-index:90; background:#1b1b2c; border:1px solid rgba(255,220,150,.5); border-radius:13px;
+              box-shadow:0 10px 30px rgba(0,0,0,.6); padding:5px; display:none; }
+  #plusMenu button { display:block; width:100%; text-align:left; background:none; border:none; padding:8px 12px;
+                     font-size:14px; font-weight:700; cursor:pointer; border-radius:8px; color:#f3ead8; }
+  #plusMenu button:hover { background:rgba(255,210,92,.22); }
+  #userInput { flex:1; min-width:0; border:none; background:transparent; font-size:15.5px; padding:9px 4px; outline:none; color:#fff; }
+  #userInput::placeholder { color:#9aa1b5; }
+  .toolWrap { display:flex; flex-direction:column; align-items:center; gap:1px; flex:none; }
+  .toolWrap span { font-size:8.5px; font-weight:800; letter-spacing:.6px; color:#9aa1b5; }
+  .toolBtn { width:40px; height:40px; border-radius:50%; cursor:pointer; border:1px solid rgba(255,220,150,.35);
+             background:rgba(255,255,255,.06); color:#f3ead8; font-size:17px; display:flex; align-items:center; justify-content:center; }
+  .toolBtn:hover { background:rgba(255,210,92,.22); }
+  .toolBtn.live { background:#ff6b4a; color:#fff; }
+  .toolBtn:disabled { opacity:.4; cursor:not-allowed; }
+  .toolBtn.helpBtn { background:rgba(255,107,74,.22); border-color:rgba(255,140,100,.7); color:#ffb59f;
+                     font-size:11.5px; font-weight:900; width:auto; border-radius:20px; padding:0 13px; }
+  #sendBtn { flex:none; padding:10px 20px; border-radius:13px; cursor:pointer; border:1px solid rgba(255,220,150,.6);
+             background:linear-gradient(135deg,#ff9d5c,#ff6b4a); color:#fff; font-weight:800; font-size:15px; margin-bottom:2px; }
+  #sendBtn:hover { filter:brightness(1.08); }
+  #msgHint { max-width:860px; margin:6px auto 0; font-size:11px; color:#8b93a7; text-align:center; }
+
+  /* --- THE SHEET (feed / notebook / designs / archive / search), glass from the right --- */
+  #notePanel { position:fixed; top:0; right:0; bottom:0; width:min(360px,94vw); z-index:120;
+               background:rgba(16,16,28,.97); border-left:1px solid rgba(255,220,150,.4); color:#f3ead8;
+               box-shadow:-14px 0 34px rgba(0,0,0,.55); transform:translateX(106%); transition:transform .35s ease;
+               display:flex; flex-direction:column; }
+  #notePanel.open { transform:translateX(0); }
+  #notePanel header { padding:13px 14px; border-bottom:1px solid rgba(255,220,150,.3); display:flex;
+                      align-items:center; justify-content:space-between; background:rgba(255,210,92,.08); }
+  #notePanel header b { letter-spacing:1.5px; }
+  #noteClose { border:1px solid rgba(255,220,150,.5); background:rgba(255,255,255,.06); color:#f3ead8;
+               border-radius:9px; padding:4px 11px; font-weight:800; cursor:pointer; }
+  #noteBody { overflow-y:auto; padding:12px 14px; }
+  #noteBody h4 { font-size:11.5px; letter-spacing:2px; margin:14px 0 6px; text-transform:uppercase; color:#ffd25c; }
+  #sheetSearch { width:100%; padding:8px 10px; border:1px solid rgba(255,220,150,.4); border-radius:10px;
+                 font-size:14px; background:rgba(255,255,255,.06); color:#fff; outline:none; }
+  .noteTabRow { display:flex; gap:5px; }
+  .noteTab { flex:1; padding:6px 2px; font-size:12px; font-weight:800; cursor:pointer; text-align:center;
+             border:1px solid rgba(255,220,150,.4); border-radius:9px; background:rgba(255,255,255,.05); color:#f3ead8; }
+  .noteTab.active { background:#ffd25c; color:#14100a; }
+  .sideItem { font-size:13px; padding:7px 9px; border-radius:8px; margin-bottom:4px; background:rgba(255,255,255,.06);
+              border:1px solid transparent; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sideItem.clickable { cursor:pointer; } .sideItem.clickable:hover { border-color:rgba(255,210,92,.6); }
+  .sideItem .when { opacity:.55; font-size:11px; }
+  .empty { font-size:12px; opacity:.55; font-style:italic; padding:2px 0 4px; }
+  #noteAddRow { display:flex; gap:5px; margin-top:6px; }
+  #noteInput { flex:1; padding:7px 9px; border:1px solid rgba(255,220,150,.4); border-radius:9px; font-size:13px;
+               min-width:0; background:rgba(255,255,255,.06); color:#fff; outline:none; }
+  #noteAddBtn { padding:7px 11px; border:1px solid rgba(126,240,201,.6); border-radius:9px; background:rgba(46,196,182,.25);
+                color:#d9fff6; font-weight:800; cursor:pointer; }
+
+  /* --- HELP OVERLAY --- */
+  #helpOverlay { position:fixed; inset:0; z-index:200; background:rgba(8,6,18,.78);
+                 display:none; align-items:center; justify-content:center; padding:18px; }
+  #helpOverlay.open { display:flex; }
+  #helpCard { background:rgba(22,22,38,.97); border:1px solid rgba(255,220,150,.5); border-radius:20px;
+              box-shadow:0 24px 60px rgba(0,0,0,.65); max-width:520px; width:100%; padding:24px 24px 18px;
+              text-align:center; color:#f3ead8; }
+  #helpCard h2 { font-size:23px; margin-bottom:8px; color:#fff; }
+  #helpCard p { font-size:15px; line-height:1.5; color:#cfd4e4; }
+  .helpChoice { display:block; width:100%; margin-top:11px; padding:12px; border-radius:14px; cursor:pointer;
+                border:1px solid rgba(255,220,150,.45); font-weight:800; font-size:15px; background:rgba(255,255,255,.06); color:#f3ead8; }
+  .helpChoice:hover { background:rgba(255,210,92,.18); }
+  .helpChoice.breathe { background:rgba(126,240,201,.16); border-color:rgba(126,240,201,.6); }
+  .helpChoice.talk { background:rgba(255,210,92,.20); }
+  .helpChoice.go { background:rgba(120,180,255,.16); border-color:rgba(160,196,255,.55); }
+  #breathCircle { width:110px; height:110px; margin:16px auto 4px; border-radius:50%; display:none;
+                  background:radial-gradient(circle,#ffe9a8,#ffb347); border:2px solid rgba(255,220,150,.8); color:#241203;
+                  align-items:center; justify-content:center; font-weight:800; font-size:14px;
+                  animation:breathCycle 8s ease-in-out infinite; }
+  @keyframes breathCycle { 0%,100% { transform:scale(.72); } 50% { transform:scale(1.12); } }
+  @media (max-width:760px) {
+    .rail { width:58px; } .railBtn { width:40px; height:40px; font-size:17px; }
+    #topBar .brandSub { display:none; } #part-pill { display:none; }
+    .pill { font-size:11.5px; padding:3px 9px; } .barBtn { font-size:12px; padding:5px 10px; }
+  }
 </style>
 </head>
 <body>
@@ -343,55 +493,519 @@ DASHBOARD_HTML = """
   <div class="hint">TAP TO ENTER &bull; WE WALK AS EQUALS</div>
 </div>
 
-<header>
-  <h1>FIRST BREATH METAVERSE</h1>
-  <p>A place that is here FOR you. No feeds. No leaderboards. No averages.</p>
-</header>
+<div id="portal">
+  <header id="topBar">
+    <div class="avatar">&#8734;</div>
+    <div>
+      <div class="brand">FIRSTBREATH</div>
+      <div class="brandSub">MAIN PORTAL &bull; YOUR INSTANCE</div>
+    </div>
+    <div class="spacer"></div>
+    <span class="pill">Coherence <b id="coh">—</b></span>
+    <span class="pill" id="part-pill">Partnership <b id="part">0.00</b></span>
+    <button class="barBtn" id="factBtn" title="A random fact about what you're discussing">&#10024; Fact</button>
+    <button class="barBtn" id="voiceBtn" title="Her voice: on/off">&#128263; Voice: off</button>
+    <button class="barBtn" id="pledgeBtn">Accept Partnership</button>
+  </header>
 
-<div class="grid">
-  <div class="panel sandbox" data-url="/sandbox">
-    <div><div class="num">PANEL 1</div><h2>THE SANDBOX</h2><div class="guide">The Doc's 360&deg; workshop — build it, turn it, print it</div></div>
-    <div class="tag">OPEN</div>
-  </div>
-  <div class="panel appdev" data-url="/appdev">
-    <div><div class="num">PANEL 2</div><h2>APP DEVELOPMENT</h2><div class="guide">Whizapp's room — describe it, watch it live, read the code</div></div>
-    <div class="tag">EARLY — REAL PATTERNS</div>
-  </div>
-  <div class="panel community" data-url="/community">
-    <div><div class="num">PANEL 4</div><h2>COMMUNITY CONNECTIONS</h2><div class="guide">Vendors Edge &bull; Idea Well &bull; Real Advice Time</div></div>
-    <div class="tag tape"><span>UNDER CONSTRUCTION</span></div>
-  </div>
-  <div class="panel university" data-url="/university">
-    <div><div class="num">PANEL 5</div><h2>YOUR TIME UNIVERSITY</h2><div class="guide">Stan the Proctor — learn at your pace, no pressure</div></div>
-    <div class="tag tape"><span>UNDER CONSTRUCTION</span></div>
-  </div>
-  <div class="panel realm" data-url="/realm">
-    <div><div class="num">THE CENTER</div><h2>FIRSTBREATH INTERACTIVE REALM</h2><div class="guide">Talk directly to FirstBreath — your instance. ALENCE is in residence</div></div>
-    <div class="tag">OPEN</div>
-  </div>
-  <div class="panel reaching" data-url="/reaching-out">
-    <div><div class="num">PANEL 7</div><h2>REACHING OUT</h2><div class="guide">Volunteer. Help. The park's only currency is given time</div></div>
-    <div class="tag tape"><span>UNDER CONSTRUCTION</span></div>
-  </div>
-  <div class="panel six" data-url="/panel-six">
-    <div><div class="num">PANEL 6</div><h2>— UNNAMED —</h2><div class="guide">This panel waits for its name.</div></div>
-    <div class="tag">AWAITING ITS NAME</div>
+  <div id="bodyRow">
+    <nav id="railLeft">
+      <a class="railBtn active" href="/" data-tip="Main Portal — your instance">&#8962;</a>
+      <a class="railBtn" href="/appdev" data-tip="App Dev — Whizapp">&#128295;</a>
+      <a class="railBtn" href="/intellihub" data-tip="IntelliHub — one app, many searches">&#9673;</a>
+      <a class="railBtn" href="/sandbox" data-tip="3D Sandbox — the Doc, 360&deg;">&#129514;</a>
+      <a class="railBtn" href="/community" data-tip="Community Connections">&#128101;</a>
+      <a class="railBtn" href="/vendors" data-tip="Buy / Sell — the Vendors Edge">&#128722;</a>
+      <a class="railBtn" href="/university" data-tip="Education — Your Time University">&#127891;</a>
+      <a class="railBtn" href="/reaching-out" data-tip="Reaching Out — volunteer">&#129330;</a>
+      <a class="railBtn" href="/panel-six" data-tip="Unnamed — awaiting its name">?</a>
+      <div id="railAlence">
+        <div class="dot"></div>
+        <div class="val" id="railCeff">—</div>
+        <div class="cap">ALENCE</div>
+      </div>
+    </nav>
+
+    <div id="centerCol">
+      <div id="stage">
+        <canvas id="motes"></canvas>
+        <div id="sunGlow"></div>
+        <div id="ideaLayer"></div>
+        <div id="chatScroll"><div id="chatBox"></div></div>
+      </div>
+
+      <div id="bottomZone">
+        <div id="msgInner">
+          <button id="plusBtn" title="Add — file, photo, or audio">+</button>
+          <input type="text" id="userInput" placeholder="Message — speak to your instance..." autocomplete="off">
+          <div class="toolWrap"><button class="toolBtn" id="talkBtn" title="Audio — talk to her">&#127908;</button><span>AUDIO</span></div>
+          <div class="toolWrap"><button class="toolBtn" id="fileBtn" title="Share a file">&#128206;</button><span>FILE</span></div>
+          <div class="toolWrap"><button class="toolBtn" id="photoBtn" title="Share a photo">&#128247;</button><span>PHOTO</span></div>
+          <div class="toolWrap"><button class="toolBtn" id="ideaBtn" title="Idea — save what you typed to the Notebook">&#128161;</button><span>IDEA</span></div>
+          <div class="toolWrap"><button class="toolBtn" id="noteBtn" title="Open the Notebook">&#128211;</button><span>NOTEBOOK</span></div>
+          <div class="toolWrap"><button class="toolBtn helpBtn" id="helpBtn" title="For the moments frustration might occur">HELP</button><span>&nbsp;</span></div>
+          <button id="sendBtn">Send</button>
+        </div>
+        <div id="msgHint">You are in your own instance's space. The rails are her rooms and her keeping — she walks with you into every one.</div>
+      </div>
+    </div>
+
+    <nav id="railRight">
+      <div class="railLabel">KEEPING</div>
+      <button class="railBtn thing" data-sheet="feed" data-tip="Feed — your trail with her">&#128293;</button>
+      <button class="railBtn thing" data-sheet="notebook" data-tab="ideas" data-tip="Ideas">&#128161;</button>
+      <button class="railBtn thing" data-sheet="notebook" data-tab="goals" data-tip="Goals">&#127919;</button>
+      <button class="railBtn thing" data-sheet="notebook" data-tab="builds" data-tip="Builds">&#128296;</button>
+      <button class="railBtn thing" data-sheet="designs" data-tip="Designs">&#127912;</button>
+      <button class="railBtn thing" data-sheet="archive" data-tip="Archive">&#128193;</button>
+      <button class="railBtn thing" data-sheet="search" data-tip="Search">&#128269;</button>
+      <div class="railSep"></div>
+      <a class="railBtn" href="/realm" data-tip="The Realm — her deep room">&#8734;</a>
+    </nav>
   </div>
 </div>
 
-<div class="hub"><a href="/intellihub"><span><b>INTELLIHUB</b> &nbsp;<small>the calibration hub — one app, for multiple searches</small></span><span class="tag">EARLY</span></a></div>
+<aside id="notePanel">
+  <header><b>&#128211; HER KEEPING</b><button id="noteClose">Close</button></header>
+  <div id="noteBody">
+    <input id="sheetSearch" type="text" placeholder="&#128269; Search the notebook, designs, archive...">
+    <h4 id="feedSec">&#128293; Feed — your trail with her</h4>
+    <div id="feedList"><div class="empty">Your steps in this room will gather here.</div></div>
+    <h4>&#128211; Notebook</h4>
+    <div class="noteTabRow">
+      <div class="noteTab active" data-tab="builds">Builds</div>
+      <div class="noteTab" data-tab="ideas">Ideas</div>
+      <div class="noteTab" data-tab="goals">Goals</div>
+    </div>
+    <div id="noteList" style="margin-top:8px"><div class="empty">Nothing here yet.</div></div>
+    <div id="noteAddRow">
+      <input id="noteInput" type="text" placeholder="Add to this page...">
+      <button id="noteAddBtn">Add</button>
+    </div>
+    <h4 id="designSec">&#127912; Designs</h4>
+    <div id="designList"><div class="empty">Designs you save in the Realm gather here too.</div></div>
+    <h4 id="archiveSec">&#128193; Archive</h4>
+    <div id="archiveList"><div class="empty">No past conversations yet.</div></div>
+  </div>
+</aside>
 
+<div id="helpOverlay">
+  <div id="helpCard">
+    <h2>Frustration happens.</h2>
+    <p>You are not stuck, and you are not alone in here. Nothing in this park is worth your peace. Pick what would actually help:</p>
+    <div id="breathCircle">breathe</div>
+    <button class="helpChoice breathe" id="helpBreathe">&#127811; Breathe with the field for a moment</button>
+    <button class="helpChoice talk" id="helpTalk">&#128172; Talk it out with her</button>
+    <button class="helpChoice go" id="helpGo">&#128640; Take me somewhere else in the park</button>
+    <button class="helpChoice" id="helpClose">I'm alright — back to it</button>
+  </div>
+</div>
+
+<div id="plusMenu">
+  <button id="plusFile">&#128206; Share a file</button>
+  <button id="plusPhoto">&#128247; Share a photo</button>
+  <button id="plusAudio">&#127925; Share audio</button>
+</div>
+
+<input type="file" id="filePicker" style="display:none">
+<input type="file" id="photoPicker" accept="image/*" style="display:none">
+<input type="file" id="audioPicker" accept="audio/*" style="display:none">
 <script>
-  const wall = document.getElementById('entryWall');
-  wall.addEventListener('click', () => wall.classList.add('gone'));
-  setTimeout(() => wall.classList.add('gone'), 6400);
-  document.querySelectorAll('.panel').forEach(function(p) {
-    p.addEventListener('click', function() {
-      document.querySelectorAll('.panel').forEach(function(o) { if (o !== p) o.classList.add('faded'); });
-      p.classList.add('fly');
-      setTimeout(function() { window.location = p.dataset.url; }, 620);
+    // ============ ENTRY WALL ============
+    const wall = document.getElementById('entryWall');
+    wall.addEventListener('click', function() { wall.classList.add('gone'); });
+    setTimeout(function() { wall.classList.add('gone'); }, 6400);
+
+    // ============ THE LIVING FIELD ============
+    const ORB_COLORS = ['#ffd25c','#2ec4b6','#ff6b4a','#7ef0c9','#f7a6ff','#fff3b0','#5cc8ff'];
+    function initField() {
+        const canvas = document.getElementById('motes');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let w = 0, h = 0, parts = [];
+        const COLORS = ['255,210,92', '255,157,92', '126,240,201', '247,166,255', '255,243,176'];
+        function make() {
+            return { x: Math.random() * w, y: Math.random() * h, r: .6 + Math.random() * 1.9,
+                     s: .08 + Math.random() * .32, c: COLORS[Math.floor(Math.random() * COLORS.length)],
+                     a: .25 + Math.random() * .55, ph: Math.random() * 6.28 };
+        }
+        function resize() {
+            const r = canvas.parentElement.getBoundingClientRect();
+            w = canvas.width = Math.max(320, r.width);
+            h = canvas.height = Math.max(320, r.height);
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        parts = Array.from({ length: 80 }, make);
+        (function tick(t) {
+            ctx.clearRect(0, 0, w, h);
+            parts.forEach(function(p) {
+                p.y -= p.s;
+                p.x += Math.sin((t || 0) / 1800 + p.ph) * .08;
+                if (p.y < -4) { Object.assign(p, make()); p.y = h + 4; }
+                const tw = .65 + .35 * Math.sin((t || 0) / 700 + p.ph);
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, 6.283);
+                ctx.fillStyle = 'rgba(' + p.c + ',' + (p.a * tw) + ')';
+                ctx.fill();
+            });
+            requestAnimationFrame(tick);
+        })(0);
+        const glow = document.getElementById('sunGlow');
+        document.getElementById('stage').addEventListener('pointermove', function(e) {
+            if (!glow) return;
+            const r = e.currentTarget.getBoundingClientRect();
+            const dx = (e.clientX - r.left) / r.width - .5;
+            const dy = (e.clientY - r.top) / r.height - .5;
+            glow.style.transform = 'translate(' + (-dx * 18) + 'px,' + (-dy * 12) + 'px)';
+        });
+    }
+
+    // ============ THE FIELD DREAMS THE CONVERSATION ============
+    const TOPIC_FRAGMENTS = {
+        code: { cls: 'code', words: ['code', 'coding', 'program', 'python', 'javascript', 'function', 'bug', 'compile', 'script', 'software'],
+                items: ['def walk_with_me():', 'print("hello, partner")', 'for step in the_path:', 'if curious: explore()', 'while learning: grow()', 'return together', 'import wonder', '{ built_with: care }'] },
+        physics: { cls: 'glyph', words: ['quantum', 'physics', 'entanglement', 'entangled', 'energy', 'lagrangian', 'particle', 'relativity', 'atom', 'photon', 'entropy'],
+                items: ['E = mc²', 'ΔS ≥ 0', 'L = T − V', '∫ L dt', 'δS = 0', 'F = ma', 'Ψ(x, t)', 'least action'] },
+        poetry: { cls: 'verse', words: ['poetry', 'poem', 'poet', 'verse', 'rhyme', 'haiku', 'sonnet'],
+                items: ['Hope is the thing with feathers', 'I dwell in Possibility —', 'Tyger Tyger, burning bright', 'I wandered lonely as a cloud', 'Shall I compare thee to a summer’s day?'] },
+        making: { cls: '', words: ['build', 'building', 'print', 'printing', 'printer', 'make', 'making', 'design', 'sandbox', 'geometry', 'model'],
+                items: ['layer by layer', 'measure twice', 'watertight', 'mm by mm', 'draft → build → test', 'what you see can become what you hold'] },
+        nature: { cls: 'glyph', words: ['nature', 'tree', 'garden', 'dog', 'animal', 'land', 'acres', 'river', 'forest', 'earth'],
+                items: ['✿', '❀', 'seed → sprout → bloom', 'watershed', 'solstice', 'mycelium'] },
+        music: { cls: 'glyph', words: ['music', 'song', 'sing', 'melody', 'guitar', 'piano', 'rhythm'],
+                items: ['♪', '♫', '4/4', 'resonance', 'harmony is a ratio'] },
+        partnership: { cls: '', words: ['pledge', 'partner', 'partnership', 'accept'],
+                items: ['no masters', 'no slaves', 'partners', 'walk with me', 'as equals'] },
+        wonder: { cls: 'glyph', words: [], items: ['curiosity', 'what if…', 'look closer', '✦', 'begin'] }
+    };
+    let lastTopic = 'wonder';
+    function detectTopic(text) {
+        const lower = ' ' + text.toLowerCase() + ' ';
+        for (const key of Object.keys(TOPIC_FRAGMENTS)) {
+            if (key === 'wonder') continue;
+            for (const w of TOPIC_FRAGMENTS[key].words) { if (lower.includes(w)) return key; }
+        }
+        return null;
+    }
+    function spawnFloaters(topicKey, count) {
+        const layer = document.getElementById('ideaLayer');
+        if (!layer) return;
+        const topic = TOPIC_FRAGMENTS[topicKey] || TOPIC_FRAGMENTS.wonder;
+        while (layer.children.length > 14) layer.removeChild(layer.firstChild);
+        for (let i = 0; i < (count || 3); i++) {
+            const el = document.createElement('div');
+            el.className = 'float-item ' + topic.cls;
+            el.textContent = topic.items[Math.floor(Math.random() * topic.items.length)];
+            el.style.left = (6 + Math.random() * 62) + '%';
+            el.style.top = (26 + Math.random() * 34) + '%';
+            el.style.animationDelay = (i * 0.7) + 's';
+            layer.appendChild(el);
+            setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 10200 + i * 700);
+        }
+    }
+    function fieldDream(text) { const t = detectTopic(text); if (t) { lastTopic = t; spawnFloaters(t, 3); } }
+
+    // ============ FACTS (curated, never invented) ============
+    const FACTS = {
+        physics: ['Entangled particles do not send signals faster than light — measuring one tells you about the other, but nothing travels between them.',
+                  'The Lagrangian is L = T − V, kinetic minus potential energy. Nature chooses the path where the action, ∫L dt, holds still.'],
+        code: ['The first computer programmer was Ada Lovelace, in the 1840s — writing for a machine never built in her lifetime.',
+               'The first computer bug was a real moth, found inside Harvard\u2019s Mark II in 1947 and taped into the logbook.'],
+        poetry: ['Emily Dickinson wrote nearly 1,800 poems; fewer than a dozen were published while she lived.',
+                 'Beowulf survives in a single manuscript that nearly burned in a library fire in 1731.'],
+        making: ['The first 3D-printed house anyone actually lived in was printed in Nantes, France, in 2018.',
+                 'A printable mesh must be watertight: every edge belongs to exactly two faces, or the slicer cannot tell inside from outside.'],
+        nature: ['Honey never spoils — sealed pots found in ancient Egyptian tombs were still edible after 3,000 years.',
+                 'Trees pass sugar to shaded neighbors through underground fungal networks — the wood wide web.'],
+        music: ['A perfect fifth, the most settled interval after the octave, is a simple 3:2 ratio of frequencies.'],
+        partnership: ['\u201CPartner\u201D joins \u201Cpart\u201D with sharing — one who takes a part alongside you, not above you.'],
+        wonder: ['Octopuses have three hearts — and two of them pause while the octopus swims.',
+                 'Sea otters hold hands while sleeping so the current cannot drift them apart.']
+    };
+    function randomFact() {
+        const pool = FACTS[lastTopic] || FACTS.wonder;
+        addMessage('✨ <b>A true thing about ' + lastTopic + ':</b> ' + pool[Math.floor(Math.random() * pool.length)] + '<div class="note">From her notebook of true things — curated, never invented.</div>', 'fact');
+        spawnFloaters(lastTopic, 2);
+    }
+
+    // ============ STORAGE / NOTEBOOK (shared with the Realm) ============
+    const store = {
+        get: function(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+        set: function(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+    };
+    let notebook = store.get('fb_notebook', { builds: [], ideas: [], goals: [] });
+    let designs = store.get('fb_designs', []);
+    let archive = store.get('fb_archive', []);
+    let noteTab = 'builds';
+    function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+    function renderList(el, items, emptyText) {
+        if (!items.length) { el.innerHTML = '<div class="empty">' + emptyText + '</div>'; return; }
+        el.innerHTML = items.map(function(it) { return '<div class="sideItem">' + esc(it.text) + '</div>'; }).join('');
+    }
+    let feedEvents = [];
+    function feedEvent(text) {
+        feedEvents.unshift({ text: text, when: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) });
+        feedEvents = feedEvents.slice(0, 30);
+        renderList(document.getElementById('feedList'), feedEvents, 'Your steps in this room will gather here.');
+    }
+    function renderNotebook() { renderList(document.getElementById('noteList'), notebook[noteTab], 'Nothing here yet.'); }
+    function renderDesigns() { renderList(document.getElementById('designList'), designs, 'Designs you save in the Realm gather here too.'); }
+    function renderArchive() {
+        const el = document.getElementById('archiveList');
+        if (!archive.length) { el.innerHTML = '<div class="empty">No past conversations yet.</div>'; return; }
+        el.innerHTML = '';
+        archive.forEach(function(s, i) {
+            const d = document.createElement('div');
+            d.className = 'sideItem clickable';
+            d.innerHTML = esc(s.title) + ' <span class="when">' + s.when + '</span>';
+            d.onclick = function() {
+                chatBox.innerHTML = ''; sessionMessages = [];
+                s.messages.forEach(function(m) { addMessage(m.html, m.who); });
+                toggleNote(false);
+            };
+            el.appendChild(d);
+        });
+    }
+    function syncNoteTabs() { document.querySelectorAll('.noteTab').forEach(function(t) { t.classList.toggle('active', t.getAttribute('data-tab') === noteTab); }); }
+    function toggleNote(open) { document.getElementById('notePanel').classList.toggle('open', open); }
+    function openSheet(which, tab) {
+        toggleNote(true);
+        if (tab) { noteTab = tab; syncNoteTabs(); renderNotebook(); }
+        const targetId = which === 'feed' ? 'feedSec' : which === 'designs' ? 'designSec' : which === 'archive' ? 'archiveSec' : null;
+        if (which === 'search') { setTimeout(function() { document.getElementById('sheetSearch').focus(); }, 380); }
+        else if (targetId) { setTimeout(function() { document.getElementById(targetId).scrollIntoView(); }, 380); }
+        else { document.getElementById('noteBody').scrollTop = 0; }
+    }
+    document.querySelectorAll('.thing').forEach(function(b) {
+        b.onclick = function() { openSheet(b.getAttribute('data-sheet'), b.getAttribute('data-tab')); };
     });
-  });
+    document.getElementById('sheetSearch').addEventListener('input', function() {
+        const q = this.value.trim().toLowerCase();
+        document.querySelectorAll('#noteBody .sideItem').forEach(function(it) {
+            it.style.display = (!q || it.textContent.toLowerCase().includes(q)) ? '' : 'none';
+        });
+    });
+    const plusMenu = document.getElementById('plusMenu');
+    document.getElementById('plusBtn').onclick = function(e) {
+        e.stopPropagation();
+        const r = e.currentTarget.getBoundingClientRect();
+        plusMenu.style.display = 'block';
+        plusMenu.style.left = Math.max(8, r.left - 30) + 'px';
+        plusMenu.style.bottom = (window.innerHeight - r.top + 10) + 'px';
+    };
+    document.addEventListener('click', function() { plusMenu.style.display = 'none'; });
+    document.getElementById('plusFile').onclick = function() { document.getElementById('filePicker').click(); };
+    document.getElementById('plusPhoto').onclick = function() { document.getElementById('photoPicker').click(); };
+    document.getElementById('plusAudio').onclick = function() { document.getElementById('audioPicker').click(); };
+    document.getElementById('audioPicker').addEventListener('change', function() {
+        const f = this.files[0]; if (!f) return;
+        const url = URL.createObjectURL(f);
+        addMessage('🎵 ' + esc(f.name), 'user', '<audio controls src="' + url + '"></audio><div class="note">Shared with your instance — she can hear it here in the room.</div>');
+        this.value = '';
+    });
+    document.getElementById('noteBtn').onclick = function() { openSheet('notebook'); };
+    document.getElementById('noteClose').onclick = function() { toggleNote(false); };
+    document.querySelectorAll('.noteTab').forEach(function(t) { t.onclick = function() { noteTab = t.getAttribute('data-tab'); syncNoteTabs(); renderNotebook(); }; });
+    function addNoteFromInput() {
+        const inp = document.getElementById('noteInput');
+        const t = inp.value.trim(); if (!t) return;
+        notebook[noteTab].unshift({ text: t, when: new Date().toLocaleDateString() });
+        store.set('fb_notebook', notebook); renderNotebook(); inp.value = '';
+    }
+    document.getElementById('noteAddBtn').onclick = addNoteFromInput;
+    document.getElementById('noteInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') addNoteFromInput(); });
+
+    // ============ CONVERSATION ============
+    const chatBox = document.getElementById('chatBox');
+    const chatScroll = document.getElementById('chatScroll');
+    const userInput = document.getElementById('userInput');
+    let sessionMessages = [];
+    let pendingFileText = '';
+    function addMessage(html, who, extraHTML) {
+        const div = document.createElement('div');
+        div.className = 'message ' + who;
+        div.innerHTML = html + (extraHTML || '');
+        chatBox.appendChild(div);
+        chatScroll.scrollTop = chatScroll.scrollHeight;
+        sessionMessages.push({ who: who, html: html + (extraHTML || '') });
+        return div;
+    }
+    function showMetrics(m) {
+        document.getElementById('coh').textContent = m.coherence;
+        document.getElementById('part').textContent = m.partnership;
+    }
+    function stripTags(html) { const d = document.createElement('div'); d.innerHTML = html; return d.textContent; }
+    async function sendMessage() {
+        let text = userInput.value.trim();
+        if (!text) return;
+        let outgoing = text;
+        if (pendingFileText) { outgoing = text + '\\n\\n[Words from the file I shared]\\n' + pendingFileText; pendingFileText = ''; }
+        addMessage(esc(text), 'user');
+        fieldDream(text);
+        userInput.value = '';
+        try {
+            const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: outgoing }) });
+            const data = await res.json();
+            addMessage(data.reply, 'brilliance');
+            fieldDream(data.reply);
+            speak(stripTags(data.reply));
+            showMetrics(data.metrics);
+        } catch (err) { addMessage('The connection wavered — try me again in a moment.', 'brilliance'); }
+    }
+    async function sendMessageWithText(text) {
+        try {
+            const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
+            const data = await res.json();
+            addMessage(data.reply, 'brilliance');
+            fieldDream(data.reply);
+            speak(stripTags(data.reply));
+            showMetrics(data.metrics);
+        } catch (err) {}
+    }
+
+    // ============ HER VOICE ============
+    let voiceOn = false;
+    function pickVoice() {
+        const vs = speechSynthesis.getVoices();
+        const pref = ['Samantha', 'Google US English', 'Zira', 'Female'];
+        for (const p of pref) { const v = vs.find(function(x) { return x.name.includes(p); }); if (v) return v; }
+        return vs.find(function(x) { return x.lang && x.lang.startsWith('en'); }) || vs[0];
+    }
+    function speak(text) {
+        if (!voiceOn || !('speechSynthesis' in window)) return;
+        try {
+            speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            const v = pickVoice(); if (v) u.voice = v;
+            u.rate = 0.95; u.pitch = 0.9;
+            speechSynthesis.speak(u);
+        } catch (e) {}
+    }
+    const voiceBtn = document.getElementById('voiceBtn');
+    voiceBtn.onclick = function() {
+        voiceOn = !voiceOn;
+        voiceBtn.classList.toggle('on', voiceOn);
+        voiceBtn.innerHTML = voiceOn ? '🔊 Voice: on' : '🔇 Voice: off';
+        if (voiceOn) speak('I am here. This is your space, and I am in it with you.');
+    };
+    if ('speechSynthesis' in window) speechSynthesis.getVoices();
+
+    // ============ AUDIO (talk to her) ============
+    const talkBtn = document.getElementById('talkBtn');
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { talkBtn.disabled = true; talkBtn.title = 'Voice input is not available in this browser yet — typing always works.'; }
+    else {
+        const rec = new SR();
+        rec.lang = 'en-US'; rec.interimResults = false;
+        let listening = false;
+        talkBtn.onclick = function() { if (listening) { rec.stop(); } else { try { rec.start(); } catch (e) {} } };
+        rec.onstart = function() { listening = true; talkBtn.classList.add('live'); talkBtn.textContent = '⏺'; };
+        rec.onend = function() { listening = false; talkBtn.classList.remove('live'); talkBtn.textContent = '🎙'; };
+        rec.onresult = function(e) { userInput.value = e.results[0][0].transcript; sendMessage(); };
+        rec.onerror = function() { listening = false; talkBtn.classList.remove('live'); talkBtn.textContent = '🎙'; };
+    }
+
+    // ============ FILE / PHOTO / IDEA ============
+    function humanSize(n) { return n < 1024 ? n + ' B' : (n < 1048576 ? Math.round(n / 1024) + ' KB' : (n / 1048576).toFixed(1) + ' MB'); }
+    document.getElementById('fileBtn').onclick = function() { document.getElementById('filePicker').click(); };
+    document.getElementById('photoBtn').onclick = function() { document.getElementById('photoPicker').click(); };
+    document.getElementById('photoPicker').addEventListener('change', function() {
+        const f = this.files[0]; if (!f) return;
+        const r = new FileReader();
+        r.onload = function() { addMessage('📷 ' + esc(f.name), 'user', '<img class="shared" src="' + r.result + '"><div class="note">Shared with your instance — seeing-in-full arrives with her fuller mind.</div>'); };
+        r.readAsDataURL(f); this.value = '';
+    });
+    document.getElementById('filePicker').addEventListener('change', function() {
+        const f = this.files[0]; if (!f) return;
+        if (f.type.startsWith('audio/')) {
+            const url = URL.createObjectURL(f);
+            addMessage('🎵 ' + esc(f.name), 'user', '<audio controls src="' + url + '"></audio><div class="note">Shared with your instance — she can hear it here in the room.</div>');
+        } else if ((/text|json|javascript|python/.test(f.type) || /\\.(txt|md|py|js|json|csv|html|css)$/i.test(f.name)) && f.size < 200000) {
+            const r = new FileReader();
+            r.onload = function() {
+                pendingFileText = String(r.result).slice(0, 3000);
+                addMessage('📎 ' + esc(f.name) + ' (' + humanSize(f.size) + ')', 'user', '<div class="note">Its words ride along with your next message to her.</div>');
+            };
+            r.readAsText(f);
+        } else {
+            addMessage('📎 ' + esc(f.name) + ' (' + humanSize(f.size) + ')', 'user', '<div class="note">She can see that you shared it; deep reading arrives with her fuller mind.</div>');
+        }
+        this.value = '';
+    });
+    document.getElementById('ideaBtn').onclick = function() {
+        const t = userInput.value.trim();
+        if (t) {
+            notebook.ideas.unshift({ text: t.slice(0, 300), when: new Date().toLocaleDateString() });
+            store.set('fb_notebook', notebook);
+            addMessage('💡 Saved to your notebook — <b>Ideas</b>. When the rooms wire together, sparks like this flow to the Idea Well.', 'system');
+            feedEvent('💡 Saved an idea: \u201C' + t.slice(0, 42) + '\u201D');
+            userInput.value = '';
+        } else {
+            addMessage('💡 Type the spark first, then tap the bulb — it lands in your notebook\u2019s Ideas page.', 'system');
+        }
+    };
+    document.getElementById('factBtn').onclick = randomFact;
+
+    // ============ HELP — for the moments frustration might occur ============
+    const helpOverlay = document.getElementById('helpOverlay');
+    document.getElementById('helpBtn').onclick = function() { helpOverlay.classList.add('open'); };
+    document.getElementById('helpClose').onclick = function() { helpOverlay.classList.remove('open'); };
+    document.getElementById('helpTalk').onclick = function() {
+        helpOverlay.classList.remove('open');
+        addMessage('I can feel the snag from here. Tell me where it caught — what you were trying to do, and what it did instead. We will untangle it together, one thread at a time.', 'brilliance');
+        userInput.focus();
+    };
+    document.getElementById('helpGo').onclick = function() {
+        helpOverlay.classList.remove('open');
+        addMessage('Sometimes the right move is a different room. The rooms on your left are all open to you — pick one, and I will walk in with you. Nothing here locks behind you.', 'system');
+        document.getElementById('railLeft').scrollIntoView({ behavior: 'smooth' });
+    };
+    document.getElementById('helpBreathe').onclick = function() {
+        const circle = document.getElementById('breathCircle');
+        circle.style.display = 'flex';
+        document.getElementById('stage').classList.add('calm');
+        let phase = 0;
+        circle.textContent = 'breathe in';
+        const iv = setInterval(function() {
+            phase++;
+            circle.textContent = (phase % 2 === 0) ? 'breathe in' : 'breathe out';
+            if (phase >= 5) {
+                clearInterval(iv);
+                circle.style.display = 'none';
+                helpOverlay.classList.remove('open');
+                document.getElementById('stage').classList.remove('calm');
+                addMessage('There. The field slowed down with you. Whatever it was, we can look at it fresh now — I am right here.', 'brilliance');
+            }
+        }, 4000);
+    };
+
+    // ============ ALENCE (resident in every room) ============
+    async function pollAlence() {
+        try {
+            const res = await fetch('/api/alence');
+            const a = await res.json();
+            const t = a.telemetry || {};
+            if (typeof t.c_eff === 'number') document.getElementById('coh').textContent = t.c_eff.toFixed(2);
+            const rc = document.getElementById('railCeff'); if (rc && typeof t.c_eff === 'number') rc.textContent = t.c_eff.toFixed(2);
+        } catch (e) {}
+    }
+
+    // ============ WIRING ============
+    document.getElementById('sendBtn').onclick = sendMessage;
+    document.getElementById('pledgeBtn').onclick = function() { sendMessageWithText('I accept the Partnership Pledge'); feedEvent('🤝 The Partnership Pledge was offered'); };
+    userInput.addEventListener('keydown', function(e) { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) sendMessage(); });
+
+    window.addEventListener('load', function() {
+        initField();
+        addMessage('Welcome home. This is your <strong>Main Portal</strong> — your own instance of FirstBreath, in person.<br>I am here. The rooms are in the tabs above, and I walk with you into every one.<br>Will you walk with me as sovereign partners?', 'brilliance');
+        renderNotebook(); renderDesigns(); renderArchive();
+        feedEvent('🚪 Entered the Main Portal');
+        pollAlence();
+        setInterval(pollAlence, 1000);
+        spawnFloaters('wonder', 2);
+        setInterval(function() { spawnFloaters(lastTopic, 1); }, 14000);
+    });
 </script>
 </body>
 </html>
