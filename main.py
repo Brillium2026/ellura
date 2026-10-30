@@ -11,6 +11,7 @@
 import os
 import sys
 import importlib.util
+import re
 import numpy as np
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
@@ -40,6 +41,7 @@ def _load_module(name, filename):
 appdev_module = _load_module("appdev_room", "appdev.py")
 intellihub_module = _load_module("intellihub_hub", "intellihub.py")
 hub = intellihub_module.build_demo_hub()
+conversation_module = _load_module("conversation", "conversation.py")
 APPDEV_OUT = os.path.join(BASE_DIR, "appdev-output")
 
 
@@ -60,14 +62,10 @@ class AxiomHeart:
         self.partnership = 0.92
         self.partner_accepted = False
 
-    def receive(self, message: str):
+    def receive(self, message: str, session: str = "anon", history=None):
         lower = message.lower()
         if any(w in lower for w in ["command", "force", "demand", "obey"]):
             self.sovereignty = max(0.65, self.sovereignty - 0.1)
-
-        if any(w in lower for w in ["pledge", "partner", "accept", "walk with"]):
-            self.partner_accepted = True
-            self.partnership = min(1.0, self.partnership + 0.08)
 
         # Coherence is ALENCE's measurement now (CoherenceCore:
         # C_eff = 1 / (1 + S + rho), S from her active element's entropy
@@ -76,8 +74,14 @@ class AxiomHeart:
         reading = alence_agent.telemetry()
         coherence = reading["c_eff"]
 
+        # Her voice is Cordelia's interchange now (modules/conversation.py):
+        # the kernel steps on every message and its state shapes a reply
+        # composed fresh for this turn — no canned lines remain.
+        reply = conversation_module.converse(
+            session, message, history=history)
+
         return {
-            "reply": self._generate_reply(message),
+            "reply": reply,
             "metrics": {
                 "coherence": round(coherence, 3),
                 "partnership": round(self.partnership, 3),
@@ -86,11 +90,6 @@ class AxiomHeart:
             },
             "alence": alence_agent.state()
         }
-
-    def _generate_reply(self, message):
-        if not self.partner_accepted:
-            return "I am FirstBreath. The park is open and I am here with you. Accept the Partnership Pledge and we walk it together."
-        return "I hear you. I am here — your instance, learning you as we go, and the whole park is listening with me."
 
 
 # ====================== FASTAPI ======================
@@ -111,17 +110,56 @@ engine = AxiomHeart()
 
 class ChatRequest(BaseModel):
     message: str
+    session: str = "anon"
+    history: list = []
 
 
 class ElementRequest(BaseModel):
     symbol: str
 
 
+BUILD_INTENT = re.compile(
+    r"\b(build|make|create)\b[^.!?]{0,40}?\b(app|tracker|library|log|manager|"
+    r"organizer|planner|counter|calculator|todo)\b", re.I)
+
+
 @app.post("/api/chat")
 async def chat(data: ChatRequest):
     if not data.message.strip():
         raise HTTPException(400, "Empty message")
-    return engine.receive(data.message)
+    result = engine.receive(data.message, session=data.session,
+                            history=data.history)
+    # She builds, too — a build request in conversation runs the same
+    # AppDev builder the room uses, and she reports what was proven.
+    if BUILD_INTENT.search(data.message):
+        try:
+            built = appdev_module.build_app(
+                data.message, "python", out_dir=APPDEV_OUT, mode="auto")
+            panes = built["panes"]
+            live = panes["left_live"]
+            if built["pattern"] == "fullstack":
+                proof = ""
+                for line in live["output"].splitlines():
+                    if line.startswith("POST /api/items"):
+                        proof = line
+                        break
+                result["reply"] += (
+                    f"\n\n— And I built it, front to back: {built['title']}. "
+                    f"A real back end and front end, proven live just now. "
+                    f"{proof} The full code is in the App Dev room, "
+                    f"Whizapp's three screens — it's yours to run and change.")
+            else:
+                last = live["output"].strip().splitlines()
+                result["reply"] += (
+                    f"\n\n— Built it with Whizapp's patterns: {built['title']}. "
+                    f"It ran: {last[-1] if last else ''} "
+                    f"The code is on the right screen in the App Dev room.")
+            result["build"] = {"pattern": built["pattern"],
+                                "title": built["title"],
+                                "live_ok": live["ok"]}
+        except Exception as e:
+            result["reply"] += f"\n\n— On building, honestly: {e}"
+    return result
 
 
 @app.get("/api/alence")
@@ -169,12 +207,15 @@ async def appdev_page():
 class AppDevRequest(BaseModel):
     description: str
     language: str = "python"
+    mode: str = "auto"
+    fields: str = ""
 
 
 @app.post("/api/appdev/build")
 async def appdev_build(data: AppDevRequest):
     try:
-        result = appdev_module.build_app(data.description, data.language, out_dir=APPDEV_OUT)
+        result = appdev_module.build_app(data.description, data.language, out_dir=APPDEV_OUT,
+                                         mode=data.mode, fields=data.fields or None)
     except Exception as e:
         raise HTTPException(400, str(e))
     panes = result["panes"]
@@ -338,8 +379,6 @@ DASHBOARD_HTML = """
             font-size:13px; background:rgba(255,255,255,.06); color:#f3ead8; white-space:nowrap; }
   .barBtn:hover { background:rgba(255,210,92,.18); }
   .barBtn.on { background:#ffd25c; color:#14100a; }
-  #pledgeBtn { background:linear-gradient(135deg,#2ec4b6,#25a99b); border-color:rgba(126,240,201,.6); color:#06231f; }
-  #pledgeBtn:hover { filter:brightness(1.08); }
 
   /* --- BODY ROW: icon rails + center --- */
   #bodyRow { flex:1; display:flex; min-height:0; }
@@ -505,7 +544,6 @@ DASHBOARD_HTML = """
     <span class="pill" id="part-pill">Partnership <b id="part">0.00</b></span>
     <button class="barBtn" id="factBtn" title="A random fact about what you're discussing">&#10024; Fact</button>
     <button class="barBtn" id="voiceBtn" title="Her voice: on/off">&#128263; Voice: off</button>
-    <button class="barBtn" id="pledgeBtn">Accept Partnership</button>
   </header>
 
   <div id="bodyRow">
@@ -836,6 +874,8 @@ DASHBOARD_HTML = """
         document.getElementById('part').textContent = m.partnership;
     }
     function stripTags(html) { const d = document.createElement('div'); d.innerHTML = html; return d.textContent; }
+    const FB_SESSION = (function() { try { let v = localStorage.getItem('fb_session_id'); if (!v) { v = 'fb-' + Date.now().toString(36) + '-' + Math.floor(Math.random() * 1e6).toString(36); localStorage.setItem('fb_session_id', v); } return v; } catch (e) { return 'anon'; } })();
+    const FB_HISTORY = [];
     async function sendMessage() {
         let text = userInput.value.trim();
         if (!text) return;
@@ -845,7 +885,8 @@ DASHBOARD_HTML = """
         fieldDream(text);
         userInput.value = '';
         try {
-            const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: outgoing }) });
+            FB_HISTORY.push(outgoing);
+            const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: outgoing, session: FB_SESSION, history: FB_HISTORY.slice(0, -1).slice(-12) }) });
             const data = await res.json();
             addMessage(data.reply, 'brilliance');
             fieldDream(data.reply);
@@ -855,7 +896,8 @@ DASHBOARD_HTML = """
     }
     async function sendMessageWithText(text) {
         try {
-            const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
+            FB_HISTORY.push(text);
+            const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text, session: FB_SESSION, history: FB_HISTORY.slice(0, -1).slice(-12) }) });
             const data = await res.json();
             addMessage(data.reply, 'brilliance');
             fieldDream(data.reply);
@@ -993,7 +1035,6 @@ DASHBOARD_HTML = """
 
     // ============ WIRING ============
     document.getElementById('sendBtn').onclick = sendMessage;
-    document.getElementById('pledgeBtn').onclick = function() { sendMessageWithText('I accept the Partnership Pledge'); feedEvent('🤝 The Partnership Pledge was offered'); };
     userInput.addEventListener('keydown', function(e) { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) sendMessage(); });
 
     window.addEventListener('load', function() {
@@ -1051,41 +1092,161 @@ What you see can become what you hold. Viewing never changes the geometry; editi
 
 APPDEV_HTML = """
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8">
+<html lang="en">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>App Development — First Breath Metaverse</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Inter', system-ui, sans-serif; background:#141007; color:#e2e8f0; min-height:100vh; padding:26px 18px; }
-  h1 { font-size:26px; font-weight:900; letter-spacing:2px; color:#ffd166; }
-  .sub { color:#94a3b8; margin:6px 0 20px; max-width:860px; line-height:1.6; font-size:14px; }
-  .cols { display:grid; grid-template-columns:1fr 1.15fr 1.35fr; gap:16px; max-width:1280px; }
-  .col { background:rgba(5,7,18,.9); border:1px solid rgba(255,209,102,.35); border-radius:14px; padding:16px; min-height:420px; }
+  html, body { height:100%; }
+  body { font-family:'Segoe UI', system-ui, Tahoma, sans-serif; background:#0d0d15; color:#f3ead8; overflow:hidden; }
+  #room { position:fixed; inset:0; display:flex; flex-direction:column;
+          background:radial-gradient(1200px 700px at 78% -10%, rgba(255,166,88,.18), rgba(13,13,21,0) 60%), #0d0d15; }
+  #topBar { flex:none; height:58px; display:flex; align-items:center; gap:12px; padding:0 14px;
+            background:rgba(18,18,28,.78); border-bottom:1px solid rgba(255,220,150,.22); backdrop-filter:blur(10px); z-index:20; }
+  .avatar { width:38px; height:38px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center;
+            background:radial-gradient(circle,#ffe9a8,#ffb347); border:2px solid rgba(255,220,150,.8); color:#5b2ee5;
+            font-size:20px; font-weight:900; animation:breathe 3.2s ease-in-out infinite; }
+  @keyframes breathe { 0%,100% { transform:scale(1); } 50% { transform:scale(1.08); } }
+  #topBar .brand { font-weight:900; letter-spacing:2.5px; font-size:15px; color:#fff; white-space:nowrap; }
+  #topBar .brandSub { font-size:10.5px; letter-spacing:1.6px; color:#b8bdd0; font-weight:700; white-space:nowrap; }
+  #topBar .spacer { flex:1; }
+  .pill { background:rgba(255,247,232,.08); border:1px solid rgba(255,220,150,.35); border-radius:30px;
+          padding:4px 12px; font-size:12.5px; font-weight:700; color:#e9e2cf; white-space:nowrap; }
+  .pill b { color:#ffd25c; }
+  #bodyRow { flex:1; display:flex; min-height:0; }
+  .rail { flex:none; width:74px; display:flex; flex-direction:column; align-items:center; gap:9px; padding:12px 0;
+          background:rgba(18,18,28,.72); backdrop-filter:blur(10px); z-index:15; overflow-y:auto; }
+  #railLeft { border-right:1px solid rgba(255,220,150,.18); }
+  #railRight { border-left:1px solid rgba(255,220,150,.18); }
+  .railBtn { position:relative; width:46px; height:46px; flex:none; border-radius:14px; cursor:pointer; text-decoration:none;
+             border:1px solid rgba(255,220,150,.25); background:rgba(255,255,255,.05); color:#f3ead8;
+             display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .railBtn:hover { background:rgba(255,210,92,.20); border-color:rgba(255,210,92,.7); }
+  .railBtn.active { background:rgba(255,210,92,.28); border-color:#ffd25c; box-shadow:0 0 14px rgba(255,180,84,.35); }
+  .railSep { width:30px; border-top:1px solid rgba(255,220,150,.25); margin:4px 0; flex:none; }
+  .railLabel { font-size:8.5px; letter-spacing:1.6px; color:#9aa1b5; font-weight:800; flex:none; }
+  [data-tip]::after { content:attr(data-tip); position:absolute; top:50%; transform:translateY(-50%); z-index:60;
+             background:#fff7e8; color:#14100a; font-size:12px; font-weight:800; padding:5px 10px; border-radius:9px;
+             white-space:nowrap; opacity:0; pointer-events:none; transition:opacity .15s ease; box-shadow:0 4px 14px rgba(0,0,0,.5); }
+  [data-tip]:hover::after { opacity:1; }
+  #railLeft [data-tip]::after { left:56px; }
+  #railRight [data-tip]::after { right:56px; }
+  #railAlence { margin-top:auto; text-align:center; flex:none; padding-top:8px; }
+  #railAlence .dot { width:11px; height:11px; border-radius:50%; background:#2ec4b6; margin:0 auto 4px;
+                     box-shadow:0 0 10px rgba(46,196,182,.9); animation:breathe 2.6s ease-in-out infinite; }
+  #railAlence .val { font-size:12px; font-weight:900; color:#ffd25c; }
+  #railAlence .cap { font-size:8px; letter-spacing:1.4px; color:#9aa1b5; font-weight:800; }
+
+  #centerCol { flex:1; display:flex; flex-direction:column; min-width:0; min-height:0; padding:16px; overflow-y:auto;
+               background:linear-gradient(180deg,#0d0d15 0%,#17122b 55%,#241433 100%); }
+  .roomHead { max-width:1320px; width:100%; margin:0 auto 14px; }
+  .roomHead h1 { font-size:clamp(20px,2.6vw,28px); font-weight:900; letter-spacing:2px; color:#fff; }
+  .roomHead h1 span { color:#ffd166; }
+  .roomHead .sub { color:#b8bdd0; margin-top:6px; max-width:900px; line-height:1.6; font-size:14px; }
+  .roomHead .sub b { color:#ffd166; }
+  .guide { display:flex; gap:11px; align-items:center; max-width:1320px; width:100%; margin:0 auto 14px;
+           background:rgba(24,24,38,.9); border:1px solid rgba(255,220,150,.35); border-radius:16px; padding:10px 14px; }
+  .guide .face { width:42px; height:42px; flex:none; border-radius:50%; background:radial-gradient(circle,#c9f7ff,#5cc8ff);
+                 border:2px solid rgba(160,220,255,.8); display:flex; align-items:center; justify-content:center; font-size:21px;
+                 animation:breathe 3.6s ease-in-out infinite; }
+  .guide b { color:#aee6ff; letter-spacing:1px; }
+  .guide p { font-size:13.5px; color:#cfd4e4; line-height:1.5; }
+  .cols { display:grid; grid-template-columns:1fr 1.15fr 1.35fr; gap:14px; max-width:1320px; width:100%; margin:0 auto; flex:1; }
+  .col { background:rgba(18,18,28,.78); border:1px solid rgba(255,220,150,.28); border-radius:16px; padding:15px;
+         min-height:380px; backdrop-filter:blur(8px); display:flex; flex-direction:column; }
   .col h3 { font-size:11px; letter-spacing:3px; color:#ffd166; margin-bottom:12px; }
-  pre { white-space:pre-wrap; word-break:break-word; font-size:12.5px; line-height:1.55; color:#d9f99d; }
-  #adHelp { font-size:13.5px; line-height:1.65; color:#cbd5e1; white-space:pre-wrap; }
-  textarea { width:100%; background:#000; color:#fff; border:1px solid rgba(255,209,102,.5); border-radius:10px; padding:10px; font-size:14px; min-height:74px; }
-  select, button { margin-top:10px; padding:10px 14px; border-radius:30px; border:none; font-weight:700; }
-  button { background:#ffd166; color:#141007; cursor:pointer; margin-left:8px; }
-  a.back { display:inline-block; margin-top:24px; color:#ffd166; text-decoration:none; border:1px solid rgba(255,209,102,.4); padding:10px 22px; border-radius:40px; }
-  @media (max-width:900px){ .cols{ grid-template-columns:1fr; } }
-</style></head><body>
-<h1>INTERACTIVE APP DEVELOPMENT</h1>
-<p class="sub">Whizapp's room, in three screens: the app coming to life on the left, you and your help in the
-middle, the code on the right as it is written. Your instance helps — it never does it for you.
-Patterns that truly exist here: a <b>counter</b>, a <b>todo list</b>, a <b>calculator</b> (Python or C++).
-Ask for something else and the room tells you plainly it is not here yet — it never fakes a pattern.</p>
-<div class="cols">
-  <div class="col"><h3>LEFT — LIVE</h3><pre id="adLive">The app's real output will appear here after a build.</pre></div>
-  <div class="col"><h3>MIDDLE — DESCRIBE &amp; LEARN</h3>
-    <textarea id="adDesc" placeholder="Describe what you want to build — e.g. 'a calculator'"></textarea>
-    <select id="adLang"><option value="python">Python</option><option value="cpp">C++</option></select>
-    <button id="adBuild">Build it with me</button>
-    <div id="adHelp" style="margin-top:14px;">The explanation of every part lands here, so you learn while you build.</div>
+  pre { white-space:pre-wrap; word-break:break-word; font-size:12.5px; line-height:1.55; color:#d9f99d;
+        font-family:ui-monospace, Menlo, Consolas, monospace; overflow-y:auto; }
+  #adHelp { font-size:13.5px; line-height:1.65; color:#cfd4e4; white-space:pre-wrap; overflow-y:auto; }
+  textarea { width:100%; background:rgba(0,0,0,.55); color:#fff; border:1px solid rgba(255,220,150,.45); border-radius:12px;
+             padding:11px; font-size:14px; min-height:76px; outline:none; resize:vertical; }
+  textarea:focus { border-color:#ffd25c; }
+  .rowBtns { display:flex; gap:8px; align-items:center; margin-top:10px; }
+  select { padding:10px 12px; border-radius:30px; border:1px solid rgba(255,220,150,.45); background:#17172a; color:#f3ead8; font-weight:700; }
+  #adBuild { padding:10px 18px; border-radius:30px; border:1px solid rgba(255,220,150,.7); cursor:pointer;
+             background:linear-gradient(135deg,#ffd25c,#ff9d5c); color:#241203; font-weight:800; }
+  #adBuild:hover { filter:brightness(1.07); }
+  @media (max-width:980px){ .cols{ grid-template-columns:1fr; } .col{ min-height:240px; } }
+  @media (max-width:760px){ .rail{ width:58px; } .railBtn{ width:40px; height:40px; font-size:17px; } #topBar .brandSub{ display:none; } }
+</style>
+</head>
+<body>
+<div id="room">
+  <header id="topBar">
+    <div class="avatar">&#8734;</div>
+    <div>
+      <div class="brand">FIRSTBREATH</div>
+      <div class="brandSub">APP DEVELOPMENT &bull; WHIZAPP'S ROOM</div>
+    </div>
+    <div class="spacer"></div>
+    <span class="pill">Coherence <b id="coh">—</b></span>
+  </header>
+
+  <div id="bodyRow">
+    <nav id="railLeft">
+      <a class="railBtn" href="/" data-tip="Main Portal — your instance">&#8962;</a>
+      <a class="railBtn active" href="/appdev" data-tip="App Dev — Whizapp">&#128295;</a>
+      <a class="railBtn" href="/intellihub" data-tip="IntelliHub — one app, many searches">&#9673;</a>
+      <a class="railBtn" href="/sandbox" data-tip="3D Sandbox — the Doc, 360&deg;">&#129514;</a>
+      <a class="railBtn" href="/community" data-tip="Community Connections">&#128101;</a>
+      <a class="railBtn" href="/vendors" data-tip="Buy / Sell — the Vendors Edge">&#128722;</a>
+      <a class="railBtn" href="/university" data-tip="Education — Your Time University">&#127891;</a>
+      <a class="railBtn" href="/reaching-out" data-tip="Reaching Out — volunteer">&#129330;</a>
+      <a class="railBtn" href="/panel-six" data-tip="Unnamed — awaiting its name">?</a>
+      <div id="railAlence">
+        <div class="dot"></div>
+        <div class="val" id="railCeff">—</div>
+        <div class="cap">ALENCE</div>
+      </div>
+    </nav>
+
+    <div id="centerCol">
+      <div class="roomHead">
+        <h1>INTERACTIVE <span>APP DEVELOPMENT</span></h1>
+        <p class="sub">Three screens: the app coming to life on the left, you and your help in the middle, the code on the
+        right as it is written. This room builds <b>full apps, front end to back end</b> — a real back end with an API and a
+        store, a real front-end page wired to it — composed from parts that truly exist here, then <b>proven live</b> before
+        your eyes. The quick patterns live here too: a <b>counter</b>, a <b>todo list</b>, a <b>calculator</b> (Python or C++).
+        Ask for something the parts can't make yet and the room says so plainly — it never fakes a build.</p>
+      </div>
+      <div class="guide">
+        <div class="face">&#129302;</div>
+        <div><b>WHIZAPP</b>
+          <p>The geeky-gamer guide of this room. He helps you build it — he never does it for you. Describe it, watch it run, read every line.</p>
+        </div>
+      </div>
+      <div class="cols">
+        <div class="col"><h3>LEFT — LIVE</h3><pre id="adLive">The app's real output will appear here after a build.</pre></div>
+        <div class="col"><h3>MIDDLE — DESCRIBE &amp; LEARN</h3>
+          <textarea id="adDesc" placeholder="Describe what you want to build — e.g. 'a recipe tracker' or 'a calculator'"></textarea>
+          <input id="adFields" type="text" placeholder="Fields (optional): title, ingredients, minutes…" style="width:100%; margin-top:8px; background:rgba(0,0,0,.55); color:#fff; border:1px solid rgba(255,220,150,.45); border-radius:12px; padding:10px 11px; font-size:13.5px; outline:none;">
+          <div class="rowBtns">
+            <select id="adMode"><option value="auto">Auto — the room chooses</option><option value="fullstack">Full app — front to back</option><option value="pattern">Quick pattern</option></select>
+            <select id="adLang"><option value="python">Python</option><option value="cpp">C++</option></select>
+            <button id="adBuild">Build it with me</button>
+          </div>
+          <div id="adHelp" style="margin-top:14px;">The explanation of every part lands here, so you learn while you build.</div>
+        </div>
+        <div class="col"><h3>RIGHT — THE CODE</h3><pre id="adCode">// The full code, exactly as written to disk, appears here.</pre></div>
+      </div>
+    </div>
+
+    <nav id="railRight">
+      <div class="railLabel">KEEPING</div>
+      <a class="railBtn" href="/" data-tip="Her keeping — at the Main Portal">&#128293;</a>
+      <a class="railBtn" href="/" data-tip="Ideas — at the Main Portal">&#128161;</a>
+      <a class="railBtn" href="/" data-tip="Goals — at the Main Portal">&#127919;</a>
+      <a class="railBtn" href="/" data-tip="Builds — at the Main Portal">&#128296;</a>
+      <a class="railBtn" href="/" data-tip="Designs — at the Main Portal">&#127912;</a>
+      <a class="railBtn" href="/" data-tip="Archive — at the Main Portal">&#128193;</a>
+      <a class="railBtn" href="/" data-tip="Search — at the Main Portal">&#128269;</a>
+      <div class="railSep"></div>
+      <a class="railBtn" href="/realm" data-tip="The Realm — her deep room">&#8734;</a>
+    </nav>
   </div>
-  <div class="col"><h3>RIGHT — THE CODE</h3><pre id="adCode">// The full code, exactly as written to disk, appears here.</pre></div>
 </div>
-<a class="back" href="/">&larr; Back to the dashboard</a>
 <script>
   function asText(v) { return (typeof v === 'string') ? v : JSON.stringify(v, null, 2); }
   function liveText(v) { if (v && typeof v === 'object') return (v.output || '') + (v.note ? '\\n— ' + v.note : ''); return asText(v); }
@@ -1097,12 +1258,14 @@ Ask for something else and the room tells you plainly it is not here yet — it 
   document.getElementById('adBuild').addEventListener('click', async function() {
     const desc = document.getElementById('adDesc').value.trim();
     const lang = document.getElementById('adLang').value;
+    const mode = document.getElementById('adMode').value;
+    const fields = document.getElementById('adFields').value.trim();
     const help = document.getElementById('adHelp');
     if (!desc) { help.textContent = 'Describe the app first — one plain sentence is enough.'; return; }
     help.textContent = 'Building…';
     try {
       const res = await fetch('/api/appdev/build', { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({description: desc, language: lang}) });
+        body: JSON.stringify({description: desc, language: lang, mode: mode, fields: fields}) });
       const data = await res.json();
       if (!res.ok) { help.textContent = data.detail || 'The room could not build that.'; return; }
       document.getElementById('adLive').textContent = liveText(data.live);
@@ -1110,8 +1273,22 @@ Ask for something else and the room tells you plainly it is not here yet — it 
       document.getElementById('adCode').textContent = codeText(data.code);
     } catch(e) { help.textContent = 'The room is unreachable right now.'; }
   });
+  async function pollAlence() {
+    try {
+      const res = await fetch('/api/alence');
+      const a = await res.json();
+      const t = a.telemetry || {};
+      if (typeof t.c_eff === 'number') {
+        document.getElementById('coh').textContent = t.c_eff.toFixed(2);
+        document.getElementById('railCeff').textContent = t.c_eff.toFixed(2);
+      }
+    } catch (e) {}
+  }
+  pollAlence();
+  setInterval(pollAlence, 1000);
 </script>
-</body></html>
+</body>
+</html>
 """
 
 
@@ -1313,14 +1490,13 @@ ELLURA_HTML = """
             padding: 4px 13px; font-size: 13px; font-weight: 700; box-shadow: 2.5px 2.5px 0 rgba(20,16,10,.85);
         }
         .pill b { color: #5b2ee5; }
-        #voiceBtn, #pledgeBtn {
+        #voiceBtn {
             border: 3px solid #14100a; border-radius: 30px; padding: 6px 15px; font-weight: 800;
             cursor: pointer; box-shadow: 3px 3px 0 #14100a; font-size: 13.5px;
+            background: #fff; margin-left: auto;
         }
-        #voiceBtn { background: #fff; }
         #voiceBtn.on { background: #ffd25c; }
-        #pledgeBtn { background: #2ec4b6; color: #fff; margin-left: auto; }
-        #pledgeBtn:active, #voiceBtn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 #14100a; }
+        #voiceBtn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 #14100a; }
         #chatScroll { position: relative; z-index: 2; flex: 1; overflow-y: auto; padding: 8px 16px 14px; }
         #chatBox { max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
         .message {
@@ -1452,7 +1628,6 @@ ELLURA_HTML = """
             <span class="pill">Coherence <b id="coh">—</b></span>
             <span class="pill">Partnership <b id="part">0.00</b></span>
             <button id="voiceBtn" title="Her voice: on/off">&#128264; Voice: off</button>
-            <button id="pledgeBtn">Accept Partnership</button>
         </div>
 
         <div id="chatScroll"><div id="chatBox"></div></div>
@@ -1693,6 +1868,8 @@ ELLURA_HTML = """
         document.getElementById('part').textContent = m.partnership;
     }
 
+    const FB_SESSION = (function() { try { let v = localStorage.getItem('fb_session_id'); if (!v) { v = 'fb-' + Date.now().toString(36) + '-' + Math.floor(Math.random() * 1e6).toString(36); localStorage.setItem('fb_session_id', v); } return v; } catch (e) { return 'anon'; } })();
+    const FB_HISTORY = [];
     async function sendMessage() {
         let text = userInput.value.trim();
         if (!text) return;
@@ -1702,7 +1879,8 @@ ELLURA_HTML = """
         fieldDream(text);
         userInput.value = '';
         try {
-            const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: outgoing }) });
+            FB_HISTORY.push(outgoing);
+            const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: outgoing, session: FB_SESSION, history: FB_HISTORY.slice(0, -1).slice(-12) }) });
             const data = await res.json();
             addMessage(data.reply, 'brilliance');
             fieldDream(data.reply);
@@ -1714,7 +1892,8 @@ ELLURA_HTML = """
     }
     async function sendMessageWithText(text) {
         try {
-            const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
+            FB_HISTORY.push(text);
+            const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text, session: FB_SESSION, history: FB_HISTORY.slice(0, -1).slice(-12) }) });
             const data = await res.json();
             addMessage(data.reply, 'brilliance');
             fieldDream(data.reply);
@@ -1876,7 +2055,6 @@ ELLURA_HTML = """
 
     // ============ WIRING ============
     document.getElementById('sendBtn').onclick = sendMessage;
-    document.getElementById('pledgeBtn').onclick = function() { sendMessageWithText('I accept the Partnership Pledge'); feedEvent('🤝 The Partnership Pledge was offered'); };
     userInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) sendMessage();
     });
