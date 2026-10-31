@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Community Connections — First Breath Metaverse</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#07080f; color:#e8ecf8; font-family:'Segoe UI', system-ui, sans-serif;
+         min-height:100vh; background-image:radial-gradient(ellipse at 15% 0%, rgba(0,240,255,.05), transparent 55%),
+         radial-gradient(ellipse at 85% 100%, rgba(245,197,24,.05), transparent 55%); }
+  a { color:#ffd25c; }
+  header { display:flex; align-items:center; gap:14px; padding:16px 22px;
+           border-bottom:1px solid rgba(255,210,92,.18); background:rgba(10,13,24,.7); }
+  .back { text-decoration:none; font-size:20px; color:#cfe0ff; border:1px solid rgba(207,224,255,.25);
+          border-radius:10px; padding:6px 12px; }
+  .brand { font-size:20px; font-weight:800; letter-spacing:2px; }
+  .brandSub { font-size:11px; letter-spacing:2.5px; color:#8b93a7; }
+  .wrap { max-width:820px; margin:0 auto; padding:24px 18px 60px; }
+  .roomline { background:rgba(16,20,36,.75); border:1px solid rgba(255,210,92,.22); border-radius:14px;
+              padding:15px 18px; line-height:1.6; color:#c9d4ee; font-size:14.5px; margin-bottom:20px; }
+  .postbox { background:rgba(16,20,36,.6); border:1px solid rgba(207,224,255,.16); border-radius:14px;
+             padding:16px; margin-bottom:22px; }
+  .row { display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .row input[type=text] { background:#0b0f1e; border:1px solid rgba(207,224,255,.25); border-radius:10px;
+             color:#fff; font-size:14.5px; padding:11px 13px; outline:none; }
+  #pname { width:200px; }
+  #ptext { flex:1; min-width:220px; }
+  .kinds { display:flex; gap:8px; }
+  .kinds button { background:#0b0f1e; color:#9fb4dd; border:1px solid rgba(207,224,255,.25);
+             border-radius:20px; padding:9px 16px; cursor:pointer; font-size:13px; letter-spacing:.5px; }
+  .kinds button.on[data-k=offer] { background:rgba(255,210,92,.18); color:#ffd25c; border-color:#ffd25c; }
+  .kinds button.on[data-k=need] { background:rgba(0,180,255,.15); color:#7fd4ff; border-color:#7fd4ff; }
+  .kinds button.on[data-k=word] { background:rgba(207,224,255,.14); color:#fff; border-color:#cfe0ff; }
+  #postBtn { background:linear-gradient(135deg,#ffd25c,#f5a518); color:#14100a; border:none; font-weight:800;
+             border-radius:10px; padding:11px 22px; cursor:pointer; letter-spacing:.5px; margin-left:auto; }
+  #err { color:#ff9d9d; font-size:13px; min-height:16px; }
+  h2 { font-size:13px; letter-spacing:2.5px; color:#ffd25c; margin:6px 0 12px; }
+  .post { border-bottom:1px dashed rgba(207,224,255,.16); padding:11px 4px; display:flex; gap:12px; }
+  .chip { flex-shrink:0; font-size:10.5px; font-weight:800; letter-spacing:1px; border-radius:6px;
+          padding:3px 8px; height:fit-content; margin-top:2px; }
+  .chip.offer { background:rgba(255,210,92,.16); color:#ffd25c; border:1px solid rgba(255,210,92,.5); }
+  .chip.need { background:rgba(0,180,255,.12); color:#7fd4ff; border:1px solid rgba(127,212,255,.5); }
+  .chip.word { background:rgba(207,224,255,.08); color:#cfe0ff; border:1px solid rgba(207,224,255,.35); }
+  .post .body { line-height:1.55; font-size:14.5px; }
+  .post .meta { font-size:12px; color:#8b93a7; margin-top:2px; }
+  .empty { color:#8b93a7; font-size:14px; line-height:1.6; padding:10px 2px; }
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="/" title="Back to your Main Interface">&#8962;</a>
+  <div>
+    <div class="brand">COMMUNITY CONNECTIONS</div>
+    <div class="brandSub">THE ATRIUM — EVERYONE'S SPACE &bull; OPEN TO EVERYONE</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="roomline" id="roomLine">This room runs on noticing the good. Offer what you can, ask for what
+  you need, say what you see — done for no gain, the way neighbours used to.</div>
+
+  <div class="postbox">
+    <div class="row">
+      <input id="pname" type="text" placeholder="Your name (or stay a neighbour)">
+      <div class="kinds">
+        <button data-k="offer" class="on" onclick="setKind('offer',this)">OFFER</button>
+        <button data-k="need" onclick="setKind('need',this)">NEED</button>
+        <button data-k="word" onclick="setKind('word',this)">WORD</button>
+      </div>
+    </div>
+    <div class="row">
+      <input id="ptext" type="text" placeholder="I can help with... / I'm looking for... / just saying..."
+             onkeydown="if(event.key==='Enter')doPost()">
+      <button id="postBtn" onclick="doPost()">POST IT</button>
+    </div>
+    <div id="err"></div>
+  </div>
+
+  <h2>THE BOARD — LATEST FIRST, NO RANKING, NO LIKES, JUST PEOPLE</h2>
+  <div class="empty" style="padding-top:0">Posts live on this board for 30 days, then they're scratched off — the board keeps no permanent record of anybody. Say it like you mean it; it won't be kept.</div>
+  <div id="board"><div class="empty">The board is quiet. Be the first neighbour to post.</div></div>
+</div>
+
+<script>
+  let KIND = 'offer';
+  function setKind(k, el){
+    KIND = k;
+    document.querySelectorAll('.kinds button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
+  }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function ago(ts){
+    const s = Math.max(1, Math.floor(Date.now()/1000) - ts);
+    if (s < 60) return s + 's ago';
+    if (s < 3600) return Math.floor(s/60) + 'm ago';
+    if (s < 86400) return Math.floor(s/3600) + 'h ago';
+    return Math.floor(s/86400) + 'd ago';
+  }
+  function render(posts){
+    const box = document.getElementById('board');
+    if (!posts || !posts.length) {
+      box.innerHTML = '<div class="empty">The board is quiet. Be the first neighbour to post.</div>';
+      return;
+    }
+    box.innerHTML = posts.map(p =>
+      '<div class="post"><span class="chip ' + esc(p.kind) + '">' + esc(p.kind).toUpperCase() + '</span>' +
+      '<div><div class="body">' + esc(p.text) + '</div>' +
+      '<div class="meta">' + esc(p.name) + ' &bull; ' + ago(p.at) + '</div></div></div>'
+    ).join('');
+  }
+  async function loadBoard(){
+    try {
+      const r = await fetch('/api/community/board');
+      const d = await r.json();
+      if (d.room_line) document.getElementById('roomLine').textContent = d.room_line;
+      render(d.posts || []);
+    } catch(e) {}
+  }
+  async function doPost(){
+    const name = document.getElementById('pname').value.trim();
+    const text = document.getElementById('ptext').value.trim();
+    const err = document.getElementById('err');
+    err.textContent = '';
+    try {
+      const r = await fetch('/api/community/post', { method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name: name, kind: KIND, text: text }) });
+      const d = await r.json();
+      if (!d.ok) { err.textContent = d.error || 'That post did not land.'; return; }
+      document.getElementById('ptext').value = '';
+      render(d.board || []);
+    } catch(e) { err.textContent = 'The board did not answer just now — try again.'; }
+  }
+  loadBoard();
+  setInterval(loadBoard, 6000);
+</script>
+</body>
+</html>
