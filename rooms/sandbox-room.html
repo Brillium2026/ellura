@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>The Sandbox — First Breath Metaverse</title>
+<style>
+  :root { --bg:#0b1220; --panel:#111c30; --panel2:#0e1728; --line:#22345a;
+          --ink:#dbe7ff; --dim:#8fa8d0; --acc:#57b7e8; --good:#58e0a0;
+          --bad:#ff7a7a; --warn:#ffd479; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; padding:0; background:var(--bg); color:var(--ink);
+    font-family: ui-rounded, "Segoe UI", system-ui, sans-serif; }
+  header { padding:10px 14px 6px; display:flex; align-items:baseline; gap:10px;
+    flex-wrap:wrap; }
+  header h1 { font-size:17px; margin:0; letter-spacing:.06em; }
+  header .sub { color:var(--dim); font-size:12px; }
+  #view { position:relative; margin:6px 10px; border:1px solid var(--line);
+    border-radius:14px; overflow:hidden; background:#060b16; }
+  canvas { display:block; width:100%; height:46vh; touch-action:none; }
+  #badge { position:absolute; left:10px; top:8px; font-size:12px; line-height:1.5;
+    background:rgba(6,11,22,.72); padding:6px 9px; border-radius:9px;
+    border:1px solid var(--line); pointer-events:none; }
+  #mode { position:absolute; right:10px; top:8px; display:flex; gap:6px; }
+  .modebtn { font-size:12px; padding:7px 11px; border-radius:999px;
+    border:1px solid var(--line); background:var(--panel); color:var(--dim); }
+  .modebtn.on { background:var(--acc); color:#04121f; font-weight:700; border-color:var(--acc); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; margin:8px 10px; align-items:center; }
+  button { background:var(--panel); color:var(--ink); border:1px solid var(--line);
+    border-radius:10px; padding:9px 12px; font-size:13px; cursor:pointer; }
+  button:active { transform:scale(.97); }
+  button.primary { background:var(--acc); color:#04121f; font-weight:700; border-color:var(--acc); }
+  button:disabled { opacity:.38; }
+  button.danger { border-color:#5a2233; color:var(--bad); }
+  .card { background:var(--panel2); border:1px solid var(--line); border-radius:12px;
+    margin:8px 10px; padding:10px 12px; }
+  .card h3 { margin:0 0 8px; font-size:13px; letter-spacing:.05em; color:var(--dim);
+    text-transform:uppercase; }
+  .part { display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:9px;
+    border:1px solid transparent; }
+  .part.sel { border-color:var(--acc); background:rgba(87,183,232,.08); }
+  .part .nm { flex:1; font-size:14px; }
+  .part .vol { color:var(--dim); font-size:12px; }
+  label.f { display:flex; flex-direction:column; gap:3px; font-size:11px;
+    color:var(--dim); min-width:64px; flex:1; }
+  input[type=number], input[type=text] { background:#0a1424; color:var(--ink);
+    border:1px solid var(--line); border-radius:8px; padding:8px; font-size:14px; width:100%; }
+  input:disabled { opacity:.35; }
+  input[type=range] { width:100%; accent-color:var(--acc); }
+  input[type=color] { width:44px; height:34px; border:1px solid var(--line);
+    border-radius:8px; background:#0a1424; padding:2px; }
+  .ok { color:var(--good); } .no { color:var(--bad); } .dim { color:var(--dim); }
+  .small { font-size:12px; } .mono { font-family:ui-monospace, monospace; }
+  #err { color:var(--bad); font-size:12px; white-space:pre-wrap; }
+  .grid { display:flex; gap:8px; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1>THE&nbsp;SANDBOX</h1>
+  <span class="sub">the park's working sandbox &middot; Doc's area &middot; millimetres &middot; Z up &middot; the view never bends the geometry</span>
+</header>
+<div style="display:flex;gap:14px;align-items:center;padding:8px 14px;background:rgba(16,20,36,.75);border-bottom:1px solid rgba(255,210,92,.2);font-size:13px">
+  <a href="/sandbox" style="color:#cfe0ff;text-decoration:none">&larr; The Sandbox</a>
+  <a href="/" style="color:#cfe0ff;text-decoration:none">&#8962; Main Interface</a>
+  <span style="color:#c9d4ee"><b style="color:#ffd25c">THE DOC:</b> Mind the sparks. This is where things get built, broken, and built better — and everything here is true enough to print.</span>
+</div>
+
+<div id="view">
+  <canvas id="cv" width="900" height="620"></canvas>
+  <div id="badge"></div>
+  <div id="mode">
+    <button class="modebtn on" id="mInspect">INSPECT · locked</button>
+    <button class="modebtn" id="mEdit">EDIT · unlock</button>
+  </div>
+</div>
+
+<div class="row">
+  <span class="small dim">Drag to orbit · pinch or slide to zoom (camera only — zoom never resizes a part)</span>
+</div>
+<div class="row">
+  <label class="f" style="max-width:150px">Distance<input type="range" id="dist" min="90" max="420" value="210"></label>
+  <label class="f" style="max-width:150px">Roll (room twist)<input type="range" id="roll" min="-60" max="60" value="0"></label>
+  <label class="f" style="max-width:90px">Colour<input type="color" id="tint" value="#3e8ec4"></label>
+  <label class="f" style="max-width:120px">Light
+    <input type="text" id="lightName" value="high right" disabled></label>
+  <button id="lightBtn">Move the light</button>
+</div>
+
+<div class="card">
+  <h3>Design — tap a part to select it</h3>
+  <div id="parts"></div>
+  <div class="row" style="margin:8px 0 0">
+    <span class="small dim">Add:</span>
+    <button data-add="plate">Plate</button>
+    <button data-add="box">Box</button>
+    <button data-add="post">Post</button>
+    <button data-add="collar">Collar</button>
+    <button data-add="tube">Tube</button>
+    <button data-add="washer">Washer</button>
+    <button data-add="wedge">Wedge</button>
+    <button data-add="l_bracket">L-bracket</button>
+    <button data-add="finger">Flex finger</button>
+  </div>
+</div>
+
+<div class="card">
+  <h3>The inner sandbox — design what the arm needs</h3>
+  <p class="small dim" style="margin:0 0 8px">Measure the object the arm can't handle.
+  The sandbox sizes the part, validates it, and loads it above — ready to export.</p>
+  <div class="grid">
+    <label class="f">Need
+      <input type="text" id="needTask" value="collar" disabled></label>
+    <label class="f">Object radius (mm)<input type="number" id="needRadius" value="11"></label>
+    <label class="f">Object width (mm)<input type="number" id="needWidth" value="46"></label>
+    <label class="f">Object depth (mm)<input type="number" id="needDepth" value="30"></label>
+  </div>
+  <div class="row" style="margin:8px 0 0">
+    <button id="needCollarBtn">Design a collar for it</button>
+    <button id="needGripBtn">Design a gripper for it</button>
+  </div>
+  <p class="small" id="needWhy" style="margin:8px 0 0"></p>
+</div>
+
+<div class="card" id="editorCard">
+  <h3>Selected part</h3>
+  <div id="editor"><span class="dim small">Nothing selected.</span></div>
+</div>
+
+<div class="card">
+  <h3>Printer truth</h3>
+  <div id="truth" class="small"></div>
+  <div id="err"></div>
+  <div class="row" style="margin:10px 0 0">
+    <button class="primary" id="exportBtn">⬇ Export STL for the printer</button>
+    <button id="kitBtn">Load SO-101 grip kit</button>
+    <button id="collarBtn">Load collar kit</button>
+    <button id="clearBtn" class="danger">Clear design</button>
+  </div>
+  <div class="row" style="margin:8px 0 0">
+    <button id="saveBtn">Save design on this phone</button>
+    <button id="loadBtn">Load saved design</button>
+    <span class="small dim" id="saveMsg"></span>
+  </div>
+  <p class="small dim">Geometry hash <span class="mono" id="hash"></span> — change the colour or
+  the light and watch: the hash does not move. Change a size in EDIT and it does.
+  That is the whole law of this sandbox.</p>
+</div>
+
+<script id="geocore">
+"use strict";
+/* =====================================================================
+   GEOMETRY CORE — the same heart as sandbox_builder.py.
+   Millimetres, Z up. Every part is one closed triangular mesh.
+   Validation: no degenerate faces, every edge shared by exactly
+   2 faces, positive signed volume. No boolean union is faked:
+   parts are placed together; slicers union overlapping shells.
+   ===================================================================== */
+function vsub(a,b){return [a[0]-b[0],a[1]-b[1],a[2]-b[2]];}
+function vcross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+function vdot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+function vlen(a){return Math.sqrt(vdot(a,a));}
+
+function Mesh(vertices, faces){
+  if(!faces.length) throw new Error("mesh has no faces");
+  this.vertices = vertices.map(v=>[+v[0],+v[1],+v[2]]);
+  this.faces = faces.map(f=>[f[0]|0,f[1]|0,f[2]|0]);
+}
+Mesh.prototype.faceNormal = function(f){
+  const a=this.vertices[f[0]], b=this.vertices[f[1]], c=this.vertices[f[2]];
+  const n=vcross(vsub(b,a), vsub(c,a)), l=vlen(n)||1;
+  return [n[0]/l, n[1]/l, n[2]/l];
+};
+Mesh.prototype.faceArea = function(f){
+  const a=this.vertices[f[0]], b=this.vertices[f[1]], c=this.vertices[f[2]];
+  return 0.5*vlen(vcross(vsub(b,a), vsub(c,a)));
+};
+Mesh.prototype.signedVolume = function(){
+  let t=0;
+  for(const f of this.faces){
+    const a=this.vertices[f[0]], b=this.vertices[f[1]], c=this.vertices[f[2]];
+    t += vdot(a, vcross(b,c))/6;
+  }
+  return t;
+};
+Mesh.prototype.ensureOutward = function(){
+  if(this.signedVolume() < 0) this.faces = this.faces.map(f=>[f[0],f[2],f[1]]);
+};
+Mesh.prototype.boundingBox = function(){
+  const xs=this.vertices.map(v=>v[0]), ys=this.vertices.map(v=>v[1]), zs=this.vertices.map(v=>v[2]);
+  const mn=a=>Math.min.apply(null,a), mx=a=>Math.max.apply(null,a);
+  return {min:[mn(xs),mn(ys),mn(zs)], max:[mx(xs),mx(ys),mx(zs)],
+          size:[mx(xs)-mn(xs), mx(ys)-mn(ys), mx(zs)-mn(zs)]};
+};
+Mesh.prototype.validatePrinterReady = function(){
+  const errors=[];
+  for(const f of this.faces) if(this.faceArea(f) <= 1e-12) errors.push("degenerate face "+f);
+  const ec={};
+  for(const f of this.faces){
+    for(const e of [[f[0],f[1]],[f[1],f[2]],[f[2],f[0]]]){
+      const k = e[0]<e[1] ? e[0]+","+e[1] : e[1]+","+e[0];
+      ec[k]=(ec[k]||0)+1;
+    }
+  }
+  const open=Object.keys(ec).filter(k=>ec[k]!==2);
+  if(open.length) errors.push("not watertight: "+open.length+" edge(s) shared by != 2 faces");
+  const vol=this.signedVolume();
+  if(vol <= 0) errors.push("signed volume is not positive: "+vol);
+  const box=this.boundingBox();
+  if(box.size.some(s=>s<=0)) errors.push("flat bounding box: "+box.size);
+  return {ready: errors.length===0, errors, vertices:this.vertices.length,
+          faces:this.faces.length, volume_mm3: Math.round(vol*10000)/10000,
+          bbox: box, watertight: open.length===0};
+};
+Mesh.prototype.toSTL = function(name){
+  const L=["solid "+name];
+  for(const f of this.faces){
+    const n=this.faceNormal(f);
+    L.push("  facet normal "+n.map(x=>x.toExponential(6)).join(" "));
+    L.push("    outer loop");
+    for(const i of f){ const v=this.vertices[i];
+      L.push("      vertex "+v.map(x=>x.toExponential(6)).join(" ")); }
+    L.push("    endloop"); L.push("  endfacet");
+  }
+  L.push("endsolid "+name);
+  return L.join("\n")+"\n";
+};
+Mesh.prototype.geometryHash = function(){
+  // FNV-1a over the canonical STL text — display hash for THIS page.
+  const s=this.toSTL("h"); let h=0x811c9dc5;
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; }
+  return ("0000000"+h.toString(16)).slice(-8);
+};
+
+/* ---- 2D profile triangulation (ear clipping), CCW output ---- */
+function signedArea2(poly){ let a=0;
+  for(let i=0;i<poly.length;i++){ const p=poly[i], q=poly[(i+1)%poly.length];
+    a += p[0]*q[1]-q[0]*p[1]; } return a/2; }
+function triangulate2(poly){
+  const n=poly.length; if(n<3) throw new Error("profile needs at least 3 points");
+  let idx=poly.map((_,i)=>i);
+  if(signedArea2(poly)<0) idx.reverse();
+  const cross=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
+  const inTri=(p,a,b,c)=>cross(a,b,p)>=0 && cross(b,c,p)>=0 && cross(c,a,p)>=0;
+  const tris=[]; let guard=0;
+  while(idx.length>3){
+    if(++guard>10000) throw new Error("triangulation failed (self-intersecting profile?)");
+    const m=idx.length; let clipped=false;
+    for(let i=0;i<m;i++){
+      const ip=idx[(i-1+m)%m], ic=idx[i], inx=idx[(i+1)%m];
+      const a=poly[ip], b=poly[ic], c=poly[inx];
+      if(cross(a,b,c)<=0) continue;
+      if(idx.some(j=>j!==ip&&j!==ic&&j!==inx&&inTri(poly[j],a,b,c))) continue;
+      tris.push([ip,ic,inx]); idx.splice(i,1); clipped=true; break;
+    }
+    if(!clipped) throw new Error("no ear found — profile is not a simple polygon");
+  }
+  tris.push([idx[0],idx[1],idx[2]]);
+  return tris;
+}
+
+/* ---- the primitive engine: extrude a profile into one solid ---- */
+function extrude(profile, depth, axis, base){
+  axis = axis||"z"; base = base||0;
+  if(depth<=0) throw new Error("depth must be positive");
+  const n=profile.length, cap=triangulate2(profile);
+  const pt=(i,along)=>{ const u=profile[i][0], v=profile[i][1];
+    return axis==="z" ? [u,v,along] : [u,along,v]; };
+  const verts=[]; for(let i=0;i<n;i++) verts.push(pt(i,base));
+  for(let i=0;i<n;i++) verts.push(pt(i,base+depth));
+  const faces=[];
+  for(let i=0;i<n;i++){ const j=(i+1)%n;
+    faces.push([i,j,j+n]); faces.push([i,j+n,i+n]); }
+  for(const t of cap){ faces.push([t[0],t[2],t[1]]);
+    faces.push([t[0]+n,t[1]+n,t[2]+n]); }
+  const m=new Mesh(verts,faces); m.ensureOutward(); return m;
+}
+function boxMesh(w,d,h){
+  const x0=-w/2,x1=w/2,y0=-d/2,y1=d/2,z0=0,z1=h;
+  const v=[[x0,y0,z0],[x1,y0,z0],[x1,y1,z0],[x0,y1,z0],
+           [x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]];
+  const quads=[[0,3,2,1],[4,5,6,7],[0,1,5,4],[1,2,6,5],[2,3,7,6],[3,0,4,7]];
+  const faces=[];
+  for(const q of quads){ faces.push([q[0],q[1],q[2]]); faces.push([q[0],q[2],q[3]]); }
+  const m=new Mesh(v,faces); m.ensureOutward(); return m;
+}
+function circleProfile(r,seg){ const p=[];
+  for(let i=0;i<seg;i++){ const a=2*Math.PI*i/seg; p.push([r*Math.cos(a), r*Math.sin(a)]); }
+  return p; }
+
+/* ---- the parts bin (params mirror sandbox_builder.py) ---- */
+const PART_DEFS = {
+  plate:     {label:"Plate",     params:{w:60,d:60,t:4},        make:p=>boxMesh(p.w,p.d,p.t)},
+  box:       {label:"Box",       params:{w:30,d:20,h:12},       make:p=>boxMesh(p.w,p.d,p.h)},
+  cylinder:  {label:"Cylinder",  params:{r:10,h:20},           make:p=>extrude(circleProfile(p.r,40),p.h,"z")},
+  post:      {label:"Post",      params:{r:3,h:10},            make:p=>extrude(circleProfile(p.r,32),p.h,"z")},
+  tube:      {label:"Tube",      params:{r_out:12,r_in:9,h:16},  make:p=>tubeMesh(p.r_out,p.r_in,p.h,40)},
+  collar:    {label:"Collar",    params:{r_out:17,r_in:13.5,h:18}, make:p=>tubeMesh(p.r_out,p.r_in,p.h,40)},
+  washer:    {label:"Washer",    params:{r_out:12,r_in:5,t:3},   make:p=>tubeMesh(p.r_out,p.r_in,p.t,40)},
+  wedge:     {label:"Wedge",     params:{w:30,d:20,h:12},
+              make:p=>extrude([[-p.w/2,0],[p.w/2,0],[-p.w/2,p.h]], p.d, "y", -p.d/2)},
+  l_bracket: {label:"L-bracket", params:{w:40,d:20,h:30,t:4},
+              make:p=>{ const x0=-p.w/2,x1=p.w/2;
+                return extrude([[x0,0],[x1,0],[x1,p.t],[x0+p.t,p.t],[x0+p.t,p.h],[x0,p.h]],
+                               p.d,"y",-p.d/2); }},
+  finger:    {label:"Flex finger", params:{length:55,width:12,base_h:10,tip_h:7,neck_t:2},
+              make:p=>{ const nx0=p.length*0.26, nx1=p.length*0.44;
+                return extrude([[0,0],[p.length,0],[p.length,p.tip_h],[nx1,p.tip_h],
+                                [nx1,p.neck_t],[nx0,p.neck_t],[nx0,p.base_h],[0,p.base_h]],
+                               p.width,"y",-p.width/2); }},
+};
+function tubeMesh(rOut,rIn,h,seg){
+  if(!(rOut>rIn && rIn>0) || h<=0) throw new Error("tube needs r_out > r_in > 0 and h > 0");
+  const verts=[];
+  const ring=(r,z)=>{ for(let k=0;k<seg;k++){ const a=2*Math.PI*k/seg;
+    verts.push([r*Math.cos(a), r*Math.sin(a), z]); } };
+  ring(rOut,0); ring(rOut,h); ring(rIn,0); ring(rIn,h);
+  const Ob=0, Ot=seg, Ib=2*seg, It=3*seg, faces=[];
+  for(let k=0;k<seg;k++){ const j=(k+1)%seg;
+    faces.push([Ob+k,Ob+j,Ot+j]); faces.push([Ob+k,Ot+j,Ot+k]);
+    faces.push([Ib+k,It+j,Ib+j]); faces.push([Ib+k,It+k,It+j]);
+    faces.push([Ob+k,Ib+k,Ib+j]); faces.push([Ob+k,Ib+j,Ob+j]);
+    faces.push([Ot+k,Ot+j,It+j]); faces.push([Ot+k,It+j,It+k]); }
+  const m=new Mesh(verts,faces); m.ensureOutward(); return m;
+}
+
+/* ---- transforms + composition ---- */
+function translateMesh(m,dx,dy,dz){
+  return new Mesh(m.vertices.map(v=>[v[0]+dx,v[1]+dy,v[2]+dz]), m.faces);
+}
+function rotateZMesh(m,deg){
+  if(deg%360===0) return new Mesh(m.vertices, m.faces);
+  const a=deg*Math.PI/180, ca=Math.cos(a), sa=Math.sin(a);
+  const cx=m.vertices.reduce((s,v)=>s+v[0],0)/m.vertices.length;
+  const cy=m.vertices.reduce((s,v)=>s+v[1],0)/m.vertices.length;
+  const out=new Mesh(m.vertices.map(v=>{ const dx=v[0]-cx, dy=v[1]-cy;
+    return [cx+dx*ca-dy*sa, cy+dx*sa+dy*ca, v[2]]; }), m.faces);
+  out.ensureOutward(); return out;
+}
+function mergeMeshes(meshes){
+  const verts=[], faces=[];
+  for(const m of meshes){ const off=verts.length;
+    for(const v of m.vertices) verts.push(v);
+    for(const f of m.faces) faces.push([f[0]+off,f[1]+off,f[2]+off]); }
+  return new Mesh(verts,faces);
+}
+function buildDesign(spec){
+  const meshes=[], entries=[];
+  spec.forEach((item,i)=>{
+    const def=PART_DEFS[item.part];
+    if(!def) throw new Error("unknown part '"+item.part+"'");
+    let m=def.make(Object.assign({}, def.params, item.params||{}));
+    if(item.rot_z) m=rotateZMesh(m, +item.rot_z);
+    const at=item.at||[0,0,0];
+    m=translateMesh(m, +at[0], +at[1], +at[2]);
+    const rep=m.validatePrinterReady();
+    if(!rep.ready) throw new Error("part "+i+" ("+item.part+") does not validate: "+rep.errors.join("; "));
+    entries.push({index:i, part:item.part, volume_mm3:rep.volume_mm3, watertight:rep.watertight});
+    meshes.push(m);
+  });
+  const merged=mergeMeshes(meshes);
+  const rep=merged.validatePrinterReady();
+  return {mesh:merged, report:{printer_ready:rep.ready, validation:rep, parts:entries,
+    total_volume_mm3: Math.round(entries.reduce((s,e)=>s+e.volume_mm3,0)*1000)/1000}};
+}
+const SO101_COLLAR_KIT = [
+  {part:"plate",  params:{w:60,d:60,t:4}, at:[0,0,0]},
+  {part:"collar", params:{r_out:17,r_in:13.5,h:18}, at:[0,0,3]},
+  {part:"post",   params:{r:3,h:10}, at:[-22,-22,4]},
+  {part:"post",   params:{r:3,h:10}, at:[22,-22,4]},
+  {part:"post",   params:{r:3,h:10}, at:[-22,22,4]},
+  {part:"post",   params:{r:3,h:10}, at:[22,22,4]},
+];
+const GRIP_KIT = [
+  {part:"plate",  params:{w:60,d:60,t:4}, at:[0,0,0]},
+  {part:"collar", params:{r_out:17,r_in:13.5,h:18}, at:[0,0,3]},
+  {part:"finger", params:{length:55,width:12}, at:[-27.5,-20,4]},
+  {part:"finger", params:{length:55,width:12}, at:[27.5,-20,4], rot_z:180},
+  {part:"finger", params:{length:55,width:12}, at:[-27.5,20,4]},
+  {part:"finger", params:{length:55,width:12}, at:[27.5,20,4], rot_z:180},
+];
+/* ---- THE INNER SANDBOX: a measured need becomes a design ----
+   The same rules as self_design.py, named in the open. The arm
+   (or George, standing in its place) measures the object; the
+   sandbox sizes the part; the heart validates it before it exists. */
+const NEED_RULES = { clearance: 0.6, minWall: 3.0, wallFraction: 0.25,
+                     fingerReach: 15.0, plateMargin: 15.0 };
+function collarFor(radius, height){
+  height = height || 18;
+  const rIn = radius + NEED_RULES.clearance;
+  const wall = Math.max(NEED_RULES.minWall, NEED_RULES.wallFraction * rIn);
+  const rOut = rIn + wall;
+  return { spec: [{part:"collar",
+                   params:{r_out:+rOut.toFixed(2), r_in:+rIn.toFixed(2), h:height},
+                   at:[0,0,0]}],
+           why: "object radius " + radius + " + clearance " + NEED_RULES.clearance +
+                " -> bore " + rIn.toFixed(2) + "; wall " + wall.toFixed(2) +
+                " -> outside " + rOut.toFixed(2) };
+}
+function gripperFor(width, depth){
+  depth = depth || width;
+  const pw = width + 2*NEED_RULES.plateMargin, pd = depth + 2*NEED_RULES.plateMargin;
+  const len = width + NEED_RULES.fingerReach, y = depth/2 + 6;
+  const f = (sx, sy, rot) => ({part:"finger", params:{length:+len.toFixed(2), width:12},
+                               at:[sx*len/2, sy*y, 4], rot_z: rot});
+  return { spec: [ {part:"plate", params:{w:pw, d:pd, t:4}, at:[0,0,0]},
+                   f(-1,-1,0), f(1,-1,180), f(-1,1,0), f(1,1,180) ],
+           why: "object width " + width + " -> plate " + pw + "x" + pd +
+                "; fingers length " + len + " (span + " + NEED_RULES.fingerReach +
+                " of base/neck), opposed pairs at y +/-" + y };
+}
+if (typeof module !== "undefined" && module.exports){
+  module.exports = {Mesh, extrude, boxMesh, tubeMesh, PART_DEFS,
+                    buildDesign, SO101_COLLAR_KIT, GRIP_KIT,
+                    translateMesh, rotateZMesh, collarFor, gripperFor};
+}
+</script>
+
+<script>
+"use strict";
+/* ================= UI — presentation + the Inspect/Edit law ==========
+   INSPECT: geometry locked. Orbit, zoom, colour, light — all free,
+   none of it can move a vertex. EDIT: the deliberate unlock; only
+   here do sizes and positions change, and every change revalidates. */
+const $ = id => document.getElementById(id);
+let spec = JSON.parse(JSON.stringify(GRIP_KIT));
+let selected = 2;
+let mode = "inspect";
+let cam = { yaw: 0.65, pitch: 0.42, roll: 0, dist: 210 };
+let built = null;          // {mesh, report} or null on error
+let partMeshes = [];       // per-part meshes for rendering/selection
+const LIGHTS = [ {n:"high right", d:[0.5,0.5,1.0]}, {n:"high left", d:[-0.6,0.4,1.0]},
+                 {n:"overhead", d:[0.05,1.0,0.35]}, {n:"low front", d:[0.2,-0.85,0.55]} ];
+let lightIx = 0;
+
+function partMesh(item){
+  const def = PART_DEFS[item.part];
+  let m = def.make(Object.assign({}, def.params, item.params||{}));
+  if(item.rot_z) m = rotateZMesh(m, +item.rot_z);
+  const at = item.at||[0,0,0];
+  return translateMesh(m, +at[0], +at[1], +at[2]);
+}
+function rebuild(){
+  $("err").textContent = "";
+  try {
+    built = buildDesign(spec);
+    partMeshes = spec.map(partMesh);
+  } catch(e){
+    built = null; partMeshes = [];
+    try { partMeshes = spec.map(partMesh); } catch(_){ }
+    $("err").textContent = e.message;
+  }
+  renderParts(); renderEditor(); renderTruth(); draw();
+}
+function designHash(){ return built ? built.mesh.geometryHash() : "--------"; }
+
+function renderTruth(){
+  const t = $("truth"), b = $("badge");
+  if(!spec.length){
+    t.innerHTML = '<span class="dim">Empty design. Add a part in EDIT.</span>';
+    b.innerHTML = "EMPTY · no geometry"; $("hash").textContent = "--------";
+    $("exportBtn").disabled = true; return;
+  }
+  if(!built){
+    t.innerHTML = '<span class="no">✗ NOT PRINTER-READY</span> — see the error below.';
+    b.innerHTML = '<span class="no">✗ INVALID</span>';
+    $("exportBtn").disabled = true; return;
+  }
+  const v = built.report.validation, bb = v.bbox;
+  t.innerHTML =
+    '<span class="ok">✓ WATERTIGHT</span> · <span class="ok">✓ PRINTER-READY</span><br>' +
+    "Size: " + bb.size.map(x=>Math.round(x*10)/10).join(" × ") + " mm<br>" +
+    "Volume: " + built.report.total_volume_mm3.toLocaleString() + " mm³ · " +
+    v.faces + " facets · " + built.report.parts.length + " part(s)";
+  b.innerHTML = (mode==="inspect" ? "INSPECT · geometry locked" : "EDIT · unlocked") +
+    '<br><span class="' + (built.report.printer_ready ? 'ok' : 'no') + '">' +
+    (built.report.printer_ready ? "✓ watertight · ready" : "✗ not ready") + "</span>" +
+    "<br>hash " + designHash();
+  $("hash").textContent = designHash();
+  $("exportBtn").disabled = !built.report.printer_ready;
+}
+
+function renderParts(){
+  const box = $("parts"); box.innerHTML = "";
+  spec.forEach((item, i)=>{
+    const def = PART_DEFS[item.part];
+    const row = document.createElement("div");
+    row.className = "part" + (i===selected ? " sel" : "");
+    const vol = built && built.report.parts[i] ? built.report.parts[i].volume_mm3 : null;
+    row.innerHTML = '<span class="nm">' + def.label + "</span>" +
+      (vol!==null ? '<span class="vol">' + Math.round(vol).toLocaleString() + " mm³</span>" : "") +
+      '<button data-del="' + i + '">✕</button>';
+    row.addEventListener("click", ev=>{
+      if(ev.target.dataset.del !== undefined) return;
+      selected = i; renderParts(); renderEditor(); draw();
+    });
+    box.appendChild(row);
+  });
+  box.querySelectorAll("[data-del]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      setMode("edit");
+      spec.splice(+btn.dataset.del, 1);
+      if(selected >= spec.length) selected = spec.length - 1;
+      rebuild();
+    });
+  });
+}
+
+function numField(label, val, onch, step){
+  const wrap = document.createElement("label"); wrap.className = "f";
+  wrap.appendChild(document.createTextNode(label));
+  const inp = document.createElement("input");
+  inp.type = "number"; inp.value = val; inp.step = step||"any";
+  inp.disabled = (mode !== "edit");
+  inp.addEventListener("change", ()=>{ setMode("edit"); onch(parseFloat(inp.value)||0); rebuild(); });
+  wrap.appendChild(inp);
+  return wrap;
+}
+function renderEditor(){
+  const ed = $("editor");
+  const item = spec[selected];
+  if(!item){ ed.innerHTML = '<span class="dim small">Nothing selected.</span>'; return; }
+  const def = PART_DEFS[item.part];
+  ed.innerHTML = "";
+  const title = document.createElement("div");
+  title.className = "small"; title.style.marginBottom = "8px";
+  title.innerHTML = "<b>" + def.label + "</b> " +
+    (mode!=="edit" ? '<span class="dim">— locked. Tap EDIT to change sizes.</span>' : "");
+  ed.appendChild(title);
+  const grid = document.createElement("div"); grid.className = "grid";
+  const params = Object.assign({}, def.params, item.params||{});
+  Object.keys(def.params).forEach(k=>{
+    grid.appendChild(numField(k, params[k], v=>{ item.params = item.params||{};
+      item.params[k] = v; }));
+  });
+  ed.appendChild(grid);
+  const grid2 = document.createElement("div"); grid2.className = "grid";
+  grid2.style.marginTop = "8px";
+  const at = item.at || [0,0,0]; item.at = at;
+  ["x","y","z"].forEach((axis, ix)=>{
+    grid2.appendChild(numField("at " + axis, at[ix], v=>{ at[ix] = v; }));
+  });
+  grid2.appendChild(numField("rot z°", item.rot_z||0, v=>{ item.rot_z = v; }));
+  ed.appendChild(grid2);
+}
+
+function setMode(m){
+  mode = m;
+  $("mInspect").classList.toggle("on", m==="inspect");
+  $("mEdit").classList.toggle("on", m==="edit");
+  renderEditor(); renderTruth();
+}
+$("mInspect").addEventListener("click", ()=>setMode("inspect"));
+$("mEdit").addEventListener("click", ()=>setMode("edit"));
+
+document.querySelectorAll("[data-add]").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    setMode("edit");
+    const name = btn.dataset.add;
+    spec.push({part:name, params:Object.assign({}, PART_DEFS[name].params), at:[0,0,0]});
+    selected = spec.length - 1;
+    rebuild();
+  });
+});
+
+/* ================= RENDER — layered 2D parallax + shaded mesh =======
+   The five planes and their rates are the room's own: sky .05,
+   far .12, mid-far .35, mid .50, near 1.00. The mesh rides the near
+   plane. Colour and light live here and ONLY here. */
+function rotPt(v){
+  const cy=Math.cos(cam.yaw), sy=Math.sin(cam.yaw);
+  let x = v[0]*cy - v[1]*sy, y = v[0]*sy + v[1]*cy, z = v[2];
+  const cp=Math.cos(cam.pitch), sp=Math.sin(cam.pitch);
+  const y2 = y*cp - z*sp, z2 = y*sp + z*cp;
+  return [x, y2, z2];
+}
+function draw(){
+  const cv = $("cv"), ctx = cv.getContext("2d");
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+  // parallax backdrop: five drifting starfield/depth layers
+  const rates = [0.05, 0.12, 0.35, 0.5, 1.0];
+  const shades = ["#0a1526", "#0d1a30", "#10223c", "#132a48", "#173355"];
+  for(let L=0; L<5; L++){
+    ctx.fillStyle = shades[L];
+    const off = ((cam.yaw * rates[L] * 120) % 46 + 46) % 46;
+    for(let gx=-46; gx<W+46; gx+=46)
+      for(let gy= 30+L*8; gy<H; gy+=52)
+        ctx.fillRect(gx - off + (L%2)*20, gy, 3+L, 3+L);
+  }
+  if(!partMeshes.length) return;
+  // world centre from the merged bbox
+  let all = [];
+  partMeshes.forEach(m=>{ all = all.concat(m.vertices); });
+  const cx = all.reduce((s,v)=>s+v[0],0)/all.length;
+  const cy = all.reduce((s,v)=>s+v[1],0)/all.length;
+  const cz = all.reduce((s,v)=>s+v[2],0)/all.length;
+  const tintHex = $("tint").value;
+  const tint = [parseInt(tintHex.slice(1,3),16), parseInt(tintHex.slice(3,5),16),
+                parseInt(tintHex.slice(5,7),16)];
+  const light = LIGHTS[lightIx].d;
+  const ll = Math.hypot(light[0],light[1],light[2]);
+  const L = [light[0]/ll, light[1]/ll, light[2]/ll];
+  const focal = 560, dist = +cam.dist;
+  const rollA = cam.roll * Math.PI/180, cr = Math.cos(rollA), sr = Math.sin(rollA);
+  const entries = [];
+  partMeshes.forEach((m, pi)=>{
+    const proj = m.vertices.map(v=>{
+      const r = rotPt([v[0]-cx, v[1]-cy, v[2]-cz]);
+      const s = focal / Math.max(40, dist + r[1]);
+      let sx = W/2 + r[0]*s, sy2 = H/2 - r[2]*s;
+      const dx = sx - W/2, dy = sy2 - H/2;
+      sx = W/2 + dx*cr - dy*sr; sy2 = H/2 + dx*sr + dy*cr;
+      return [sx, sy2, r[1]];
+    });
+    m.faces.forEach(f=>{
+      const a=m.vertices[f[0]], b=m.vertices[f[1]], c=m.vertices[f[2]];
+      const n = vcross(vsub(b,a), vsub(c,a)); const nl = vlen(n)||1;
+      const rn = rotPt([n[0]/nl, n[1]/nl, n[2]/nl]);
+      if(rn[1] > 0.02) return; // back face — turned away from the viewer
+      const depth = (proj[f[0]][2]+proj[f[1]][2]+proj[f[2]][2])/3;
+      const dif = Math.max(0, rn[0]*L[0]+rn[1]*L[1]+rn[2]*L[2]);
+      const inten = 0.28 + 0.72*dif;
+      const base = (pi===selected && mode==="edit") ? [255, 176, 84] : tint;
+      const col = "rgb(" + base.map(ch=>Math.min(255, Math.round(ch*inten + 26*dif))).join(",") + ")";
+      entries.push({depth, col, pts: f.map(i=>proj[i])});
+    });
+  });
+  entries.sort((a,b)=>b.depth-a.depth);
+  for(const e of entries){
+    ctx.beginPath();
+    ctx.moveTo(e.pts[0][0], e.pts[0][1]);
+    ctx.lineTo(e.pts[1][0], e.pts[1][1]);
+    ctx.lineTo(e.pts[2][0], e.pts[2][1]);
+    ctx.closePath();
+    ctx.fillStyle = e.col; ctx.fill();
+    ctx.strokeStyle = "rgba(4,10,20,.35)"; ctx.stroke();
+  }
+}
+
+/* camera gestures — presentation only, structurally incapable of
+   touching geometry: they write cam{} and nothing else. */
+(function(){
+  const cv = $("cv"); const ptrs = new Map(); let lastPinch = 0;
+  cv.addEventListener("pointerdown", e=>{ ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener("pointermove", e=>{
+    if(!ptrs.has(e.pointerId)) return;
+    const prev = ptrs.get(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    if(ptrs.size === 1){
+      cam.yaw   += (e.clientX - prev[0]) * 0.012;
+      cam.pitch += (e.clientY - prev[1]) * 0.008;
+      cam.pitch = Math.max(-1.25, Math.min(1.25, cam.pitch));
+      draw();
+    } else if(ptrs.size === 2){
+      const [p, q] = [...ptrs.values()];
+      const d = Math.hypot(p[0]-q[0], p[1]-q[1]);
+      if(lastPinch) { cam.dist = Math.max(90, Math.min(420, cam.dist - (d-lastPinch)*1.4));
+        $("dist").value = cam.dist; draw(); }
+      lastPinch = d;
+    }
+  });
+  const up = e=>{ ptrs.delete(e.pointerId); if(ptrs.size<2) lastPinch = 0; };
+  cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+  cv.addEventListener("wheel", e=>{ e.preventDefault();
+    cam.dist = Math.max(90, Math.min(420, cam.dist + e.deltaY*0.4));
+    $("dist").value = cam.dist; draw(); }, {passive:false});
+})();
+$("dist").addEventListener("input", e=>{ cam.dist = +e.target.value; draw(); });
+$("roll").addEventListener("input", e=>{ cam.roll = +e.target.value; draw(); });
+$("tint").addEventListener("input", draw);
+$("lightBtn").addEventListener("click", ()=>{
+  lightIx = (lightIx+1) % LIGHTS.length;
+  $("lightName").value = LIGHTS[lightIx].n; draw();
+});
+
+/* ================= export + persistence ============================ */
+$("exportBtn").addEventListener("click", ()=>{
+  if(!built || !built.report.printer_ready) return;
+  const blob = new Blob([built.mesh.toSTL("firstbreath_design")], {type:"model/stl"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "firstbreath_design.stl";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+});
+$("kitBtn").addEventListener("click", ()=>{
+  setMode("edit");
+  spec = JSON.parse(JSON.stringify(GRIP_KIT));
+  selected = 2; rebuild();
+});
+$("collarBtn").addEventListener("click", ()=>{
+  setMode("edit");
+  spec = JSON.parse(JSON.stringify(SO101_COLLAR_KIT));
+  selected = 1; rebuild();
+});
+$("clearBtn").addEventListener("click", ()=>{
+  setMode("edit"); spec = []; selected = -1; rebuild();
+});
+$("saveBtn").addEventListener("click", ()=>{
+  localStorage.setItem("fb_sandbox_design", JSON.stringify(spec));
+  $("saveMsg").textContent = "Saved on this phone · " + new Date().toLocaleTimeString();
+});
+$("loadBtn").addEventListener("click", ()=>{
+  const raw = localStorage.getItem("fb_sandbox_design");
+  if(!raw){ $("saveMsg").textContent = "Nothing saved yet."; return; }
+  setMode("edit");
+  spec = JSON.parse(raw); selected = spec.length ? 0 : -1; rebuild();
+  $("saveMsg").textContent = "Loaded.";
+});
+
+$("needCollarBtn").addEventListener("click", ()=>{
+  const r = parseFloat($("needRadius").value);
+  if(!(r > 0)){ $("needWhy").textContent = "Give me the object's radius first."; return; }
+  const d = collarFor(r);
+  setMode("edit");
+  spec = d.spec; selected = 0;
+  $("needWhy").textContent = "Designed: " + d.why;
+  rebuild();
+});
+$("needGripBtn").addEventListener("click", ()=>{
+  const w = parseFloat($("needWidth").value), dp = parseFloat($("needDepth").value);
+  if(!(w > 0)){ $("needWhy").textContent = "Give me the object's width first."; return; }
+  const d = gripperFor(w, dp > 0 ? dp : null);
+  setMode("edit");
+  spec = d.spec; selected = 0;
+  $("needWhy").textContent = "Designed: " + d.why;
+  rebuild();
+});
+
+rebuild();
+</script>
+</body>
+</html>
