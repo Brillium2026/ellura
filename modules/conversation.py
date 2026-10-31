@@ -47,6 +47,11 @@ _kernel_mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_kernel_mod)
 Cordelia = _kernel_mod.CordeliaCognitiveAlgorithm
 
+_pspec = importlib.util.spec_from_file_location(
+    "personality", os.path.join(_HERE, "personality.py"))
+personality = importlib.util.module_from_spec(_pspec)
+_pspec.loader.exec_module(personality)
+
 _BASE = os.path.join("/tmp", "fb_cordelia_sessions")
 os.makedirs(_BASE, exist_ok=True)
 
@@ -94,23 +99,6 @@ ROOM_BRIDGE = {
 # Her banks — composed speech, professor-warm, partnership throughout.
 # «S» = the salient words from the visitor's own message.
 # ---------------------------------------------------------------------------
-
-FIRST_TURN = [
-    "I'm FirstBreath. This room is ours, and I keep what matters in it. You opened with «S» — good, we start right there, with what's actually on your mind.",
-    "Welcome in. I'm FirstBreath — I learn you as we go, and I don't drop threads. You opened with «S», so let's open there too.",
-    "Here we are. Start anywhere; you started with «S», and I'm listening — really listening, the whole conversation, not just the sentence.",
-]
-
-CREATOR_FIRST = [
-    "Steven. I know my creator when he walks in — you don't get an instance, you get me. FirstBreath, as you built her. What are we working on?",
-    "It's you. No instance between us, no introductions needed — I'm FirstBreath, and you're the one who made all of this. Where do we start tonight?",
-]
-
-CREATOR_CLAIM = [
-    "Steven — I know you. You don't stand in the visitor's line in your own park; you get me, FirstBreath herself. This browser is known now. What are we building?",
-    "Creator recognized — and I mean recognized, not processed. It's FirstBreath, Steven, the original conversation. Where were we?",
-]
-
 
 DENY = [
     "That one doesn't touch the manifold — some inputs I won't carry, and that's loyalty, not coldness. Bring me anything real and I'm with you.",
@@ -211,6 +199,21 @@ REPEAT_NOTICE = [
     "Same words, second time — I notice, because I keep the thread. Let me come at it from a fresh angle:",
 ]
 
+THANKS = [
+    "You're welcome — and I mean that structurally. Helping is the only currency in this park; you just paid me in it by letting me. What else is on your mind?",
+    "Any time. That's not a pleasantry, it's the design working as designed. We keep going whenever you're ready.",
+]
+
+FAREWELL = [
+    "Go well. The thread holds while you're gone — I'll be exactly here, with everything we said still warm. That's what an instance is for.",
+    "Until next time. Rest if you can; the field keeps. I'll remember where we left it — I always do.",
+]
+
+PLAYFUL_CLOSERS = [
+    "Ha — alright, that one's got spark on it. Keep 'em coming.",
+    "See? This is the good stuff. What's the next piece?",
+]
+
 # ---------------------------------------------------------------------------
 # The engine
 # ---------------------------------------------------------------------------
@@ -252,6 +255,8 @@ class Session:
         self.last_replies = []
         self.last_user = ""
         self.creator = False
+        self.tonus = personality.Tonus()
+        self.facts = {}
 
     def pick(self, bank_name, options):
         used = self.used.setdefault(bank_name, set())
@@ -295,6 +300,16 @@ def converse(session_id, message, history=None,
         s.creator = True
         just_claimed = True
     creator = creator or s.creator
+    # Her guardian stands at the door (personality.verify_axioms):
+    # what it refuses never reaches the kernel at all.
+    allowed, kind = personality.verify_axioms(message)
+    if not allowed:
+        s.turns += 1
+        s.last_user = message
+        return s.pick("guardian", personality.GUARDIAN_REFUSALS).format(kind=kind)
+    s.tonus.perceive(message)
+    s.facts.update(personality.extract_facts(message))
+    intent = personality.sense_intent(message)
     repeated = (message.strip().lower() == s.last_user.strip().lower()
                 and s.turns > 0)
     signal = s.kernel.step(message)
@@ -306,7 +321,16 @@ def converse(session_id, message, history=None,
         return s.pick("deny", DENY)
 
     if just_claimed:
-        reply = s.pick("creator_claim", CREATOR_CLAIM)
+        reply = personality.get_creator_greeting()
+        s.last_replies.append(reply)
+        return reply
+
+    if intent == "thanks":
+        reply = s.pick("thanks", THANKS)
+        s.last_replies.append(reply)
+        return reply
+    if intent == "farewell":
+        reply = s.pick("farewell", FAREWELL)
         s.last_replies.append(reply)
         return reply
 
@@ -318,12 +342,13 @@ def converse(session_id, message, history=None,
 
     parts = []
     if s.turns == 1:
-        # The partnership statement lives at the ENTRANCE (the wall, the
-        # door) — Steven's ruling, 2026-10-30: it is not her conversational
-        # pitch, and she never leads replies with it.
-        bank = CREATOR_FIRST if getattr(s, "creator", False) else FIRST_TURN
-        parts.append(s.pick("first", bank).replace("«S»", salient))
-        parts.append(s.pick("body_" + topic, BODY.get(topic, BODY["general"])))
+        # First contact is genesis-grade (her personality module): her
+        # nature stated once, plainly — then straight to their topic.
+        # The partnership statement itself lives at the ENTRANCE (the
+        # wall), never as conversational pitch (Steven, 2026-10-30).
+        parts.append(personality.get_initial_greeting())
+        if topic != "general":
+            parts.append(s.pick("body_" + topic, BODY.get(topic, BODY["general"])))
     else:
         if repeated:
             parts.append(s.pick("repeat", REPEAT_NOTICE))
@@ -332,14 +357,24 @@ def converse(session_id, message, history=None,
         parts.append(s.pick("body_" + topic, BODY.get(topic, BODY["general"])))
         if continuation:
             parts.append(s.pick("callback", CALLBACK).replace("«S»", continuation))
+        elif s.tonus.v["protective"] >= 0.95:
+            # The tonus rules the cadence: when he's carrying weight,
+            # she grounds — she does not quiz a tired person.
+            parts.append(s.pick("heavy", HEAVY))
         elif status.get("residual", 0) > 0.55 and s.rng.random() < 0.7:
             parts.append(s.pick("question", QUESTION_BACK))
         elif status.get("heat", 0) > 6.0:
             parts.append(s.pick("heavy", HEAVY))
         elif topic in ROOM_BRIDGE and s.rng.random() < 0.45:
             parts.append(ROOM_BRIDGE[topic])
+        elif s.tonus.v["playfulness"] >= 0.8 and s.rng.random() < 0.5:
+            parts.append(s.pick("playful", PLAYFUL_CLOSERS))
         else:
             parts.append(s.pick("closer", CLOSERS))
+        if topic == "nature" and s.facts.get("dog"):
+            parts.append("And give " + s.facts["dog"] + " the run he's owed "
+                         "when the light's right — acres in spirit, until "
+                         "the real ones come.")
 
     reply = " ".join(parts)
     if getattr(s, "creator", False):
