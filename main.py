@@ -40,9 +40,30 @@ def _load_module(name, filename):
 
 appdev_module = _load_module("appdev_room", "appdev.py")
 intellihub_module = _load_module("intellihub_hub", "intellihub.py")
+university_module = _load_module("university_room", "university.py")
 hub = intellihub_module.build_demo_hub()
 conversation_module = _load_module("conversation", "conversation.py")
-APPDEV_OUT = os.path.join(BASE_DIR, "appdev-output")
+def _appdev_out():
+    """Where AppDev writes the apps it builds. Beside the code when the
+    filesystem allows it (his Chromebook, local runs); on Vercel the app
+    directory is read-only, so the builds land in /tmp there — the panes
+    return everything either way."""
+    cand = os.path.join(BASE_DIR, "appdev-output")
+    try:
+        os.makedirs(cand, exist_ok=True)
+        probe = os.path.join(cand, ".write_test")
+        with open(probe, "w") as fh:
+            fh.write("ok")
+        os.remove(probe)
+        return cand
+    except OSError:
+        import tempfile
+        alt = os.path.join(tempfile.gettempdir(), "fb-appdev-output")
+        os.makedirs(alt, exist_ok=True)
+        return alt
+
+
+APPDEV_OUT = _appdev_out()
 
 
 # ====================== CORE ENGINE ======================
@@ -284,12 +305,31 @@ async def vendors_page():
 
 @app.get("/university")
 async def university_page():
-    return HTMLResponse(content=construction_page(
-        "YOUR TIME UNIVERSITY",
-        "Stan the Proctor's room. No-pressure learning: a trade, an "
-        "occupation, how to study, how to build AI, how to design apps. "
-        "Your instance learns alongside you and will not do the work for "
-        "you — you arrive at the real thing with the understanding in you."))
+    # Your Time University — Stan's room, a real room now (Steven's
+    # avenues model, 2026-10-31): avenues out, sought material held,
+    # accumulation on the learner's shelf, understanding built together.
+    return FileResponse(os.path.join(ROOMS_DIR, "university-room.html"))
+
+
+@app.post("/api/university/seek")
+async def university_seek(data: dict):
+    topic = str(data.get("topic", "")).strip()
+    session = str(data.get("session", "anon"))
+    if not topic:
+        raise HTTPException(400, "Empty topic")
+    return university_module.seek(topic, session)
+
+
+@app.get("/api/university/shelf")
+async def university_shelf(session: str = "anon"):
+    return {"shelf": university_module.shelf(session)}
+
+
+@app.post("/api/university/remove")
+async def university_remove(data: dict):
+    session = str(data.get("session", "anon"))
+    identifier = str(data.get("identifier", ""))
+    return {"shelf": university_module.remove(session, identifier)}
 
 
 @app.get("/reaching-out")
