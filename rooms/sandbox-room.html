@@ -730,5 +730,43 @@ $("needGripBtn").addEventListener("click", ()=>{
 
 rebuild();
 </script>
+
+<!-- DOC IS IN THIS ROOM (Steven's ruling, 2026-10-31): Doc's environment
+     IS the sandbox. He is the AI you interact with in the designing —
+     not a separate place behind another door. Text-first, as verified. -->
+<div style="max-width:980px;margin:14px auto;padding:0 14px">
+  <div style="background:rgba(16,20,36,.8);border:1px solid rgba(255,210,92,.25);border-radius:14px;padding:16px 18px">
+    <div style="font-weight:800;letter-spacing:1px;margin-bottom:6px">TALK WITH THE DOC — <span style="color:#ffd25c">he's in this room</span></div>
+    <p style="color:#c9d4ee;line-height:1.6;font-size:14px;margin:0 0 12px">Mind the sparks. This is where things get built, broken, and built better. Tell me what you're making — a size you're unsure of, a grip that won't hold, a part the arm needs — and we'll work it out right here at the bench, while you design.</p>
+    <div style="display:flex;gap:10px">
+      <input id="docAsk" type="text" placeholder="Ask the Doc — e.g. 'the collar slips on a 22mm shaft, what do I change?'"
+        style="flex:1;background:#0b0f1e;border:1px solid rgba(207,224,255,.25);border-radius:10px;color:#fff;font-size:14.5px;padding:11px 13px;outline:none"
+        onkeydown="if(event.key==='Enter')askDoc()">
+      <button onclick="askDoc()" style="background:linear-gradient(135deg,#ffd25c,#f5a518);color:#14100a;border:none;font-weight:800;border-radius:10px;padding:11px 20px;cursor:pointer">ASK</button>
+    </div>
+    <div id="docReply" style="display:none;margin-top:12px;background:rgba(0,240,255,.05);border:1px solid rgba(0,240,255,.18);border-radius:10px;padding:12px 14px;line-height:1.6;font-size:14.5px;color:#dceaff;white-space:pre-wrap"></div>
+  </div>
+</div>
+<script>
+  const DOC_SESSION = (function(){ try {
+    let v = localStorage.getItem('fb_session_id');
+    if (!v) { v = 'fb-' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+              localStorage.setItem('fb_session_id', v); }
+    return v; } catch(e) { return 'fb-anon'; } })();
+  async function askDoc(){
+    const box = document.getElementById('docAsk');
+    const q = box.value.trim(); if (!q) return;
+    const out = document.getElementById('docReply');
+    out.style.display = 'block'; out.textContent = 'The Doc is looking at your bench...';
+    try {
+      const r = await fetch('/api/chat', { method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ message: "Doc — I'm designing in the sandbox. " + q,
+                               session: DOC_SESSION, history: [] }) });
+      const d = await r.json();
+      out.textContent = d.reply || 'No answer came back — ask me again.';
+    } catch(e) { out.textContent = 'The Doc could not be reached just now. Try again.'; }
+  }
+</script>
 </body>
 </html>
