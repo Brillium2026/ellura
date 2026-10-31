@@ -41,6 +41,7 @@ def _load_module(name, filename):
 appdev_module = _load_module("appdev_room", "appdev.py")
 intellihub_module = _load_module("intellihub_hub", "intellihub.py")
 university_module = _load_module("university_room", "university.py")
+community_module = _load_module("community_room", "community.py")
 hub = intellihub_module.build_demo_hub()
 conversation_module = _load_module("conversation", "conversation.py")
 def _appdev_out():
@@ -286,13 +287,22 @@ async def intellihub_ask(data: HubRequest):
 
 @app.get("/community")
 async def community_page():
-    return HTMLResponse(content=construction_page(
-        "COMMUNITY CONNECTIONS",
-        "The commons of the park. Nested inside: THE VENDORS EDGE, where "
-        "builders sell the apps they made here (B-Deal keeps the selling "
-        "honest); THE IDEA WELL, the free commons — 'I built this', 'can you "
-        "help', 'does anybody know how'; and REAL ADVICE TIME, a counselor's "
-        "room. None of it is a feed. None of it ranks anybody."))
+    # Community Connections — a real room now (Steven's design,
+    # 2026-10-31): a chatroom open to everyone, marketplace/Craigslist
+    # vibe. One shared board; OFFER / NEED / WORD; no ranking, no likes.
+    return FileResponse(os.path.join(ROOMS_DIR, "community-room.html"))
+
+
+@app.get("/api/community/board")
+async def community_board():
+    return community_module.board()
+
+
+@app.post("/api/community/post")
+async def community_post(data: dict):
+    return community_module.post(str(data.get("name", "")),
+                                 str(data.get("kind", "word")),
+                                 str(data.get("text", "")))
 
 
 @app.get("/vendors")
