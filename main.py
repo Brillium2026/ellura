@@ -221,7 +221,11 @@ async def sandbox_room():
 
 @app.get("/sandbox/doc")
 async def sandbox_doc():
-    return FileResponse(os.path.join(ROOMS_DIR, "doc-room.html"))
+    # Corrected (Steven, 2026-10-31): there is no separate Doc place.
+    # His environment IS the sandbox — this address lands in the same
+    # room, where he already is. (rooms/doc-room.html, his earlier
+    # verified talk surface, stays in the tree as bench history.)
+    return FileResponse(os.path.join(ROOMS_DIR, "sandbox-room.html"))
 
 
 @app.get("/appdev")
@@ -1126,10 +1130,7 @@ every visual sits true print geometry: millimetres, watertight, ready for a prin
 What you see can become what you hold. Viewing never changes the geometry; editing is a deliberate act.</p>
 <div class="doors">
   <a class="door" href="/sandbox/room"><h2>THE SANDBOX — DESIGN TRUE, PRINT TRUE</h2>
-    <p>The working sandbox in the gyroscope view: build true geometry, feel the grip, design what the arm needs, export it for the printer. The view never bends the geometry; editing is a deliberate act.</p>
-    <span class="tag">OPEN</span></a>
-  <a class="door alt" href="/sandbox/doc"><h2>DOC'S INVENTION BOX</h2>
-    <p>Step into the Doc's workshop and talk with him — text first, the way he was verified.</p>
+    <p>The working sandbox in the gyroscope view: build true geometry, feel the grip, design what the arm needs, export it for the printer. The view never bends the geometry; editing is a deliberate act. And the Doc is IN this room — his environment is the sandbox itself; you talk with him while you design, not behind another door.</p>
     <span class="tag">OPEN</span></a>
 </div>
 <a class="back" href="/">&larr; Back to the dashboard</a>
