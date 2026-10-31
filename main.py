@@ -212,7 +212,10 @@ async def sandbox_area():
 
 @app.get("/sandbox/room")
 async def sandbox_room():
-    return FileResponse(os.path.join(ROOMS_DIR, "interaction_room.html"))
+    # The gap closed (Steven, 2026-10-31): the park's sandbox room now
+    # holds the VERIFIED builder — the same geometry heart George uses,
+    # script-for-script identical; only the room's dress is the park's.
+    return FileResponse(os.path.join(ROOMS_DIR, "sandbox-room.html"))
 
 
 @app.get("/sandbox/doc")
@@ -1112,8 +1115,8 @@ SANDBOX_HTML = """
 every visual sits true print geometry: millimetres, watertight, ready for a printer.
 What you see can become what you hold. Viewing never changes the geometry; editing is a deliberate act.</p>
 <div class="doors">
-  <a class="door" href="/sandbox/room"><h2>THE 360&deg; INTERACTION ROOM</h2>
-    <p>The gyroscope room. Move the world first; touch an object only when you choose to.</p>
+  <a class="door" href="/sandbox/room"><h2>THE SANDBOX — DESIGN TRUE, PRINT TRUE</h2>
+    <p>The working sandbox in the gyroscope view: build true geometry, feel the grip, design what the arm needs, export it for the printer. The view never bends the geometry; editing is a deliberate act.</p>
     <span class="tag">OPEN</span></a>
   <a class="door alt" href="/sandbox/doc"><h2>DOC'S INVENTION BOX</h2>
     <p>Step into the Doc's workshop and talk with him — text first, the way he was verified.</p>
