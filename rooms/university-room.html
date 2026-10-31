@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your Time University — First Breath Metaverse</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#07080f; color:#e8ecf8; font-family:'Segoe UI', system-ui, sans-serif;
+         min-height:100vh; background-image:radial-gradient(ellipse at 15% 0%, rgba(0,240,255,.06), transparent 55%),
+         radial-gradient(ellipse at 85% 100%, rgba(139,92,246,.07), transparent 55%); }
+  a { color:#ffd25c; }
+  header { display:flex; align-items:center; gap:14px; padding:16px 22px;
+           border-bottom:1px solid rgba(255,210,92,.18); background:rgba(10,13,24,.7); }
+  .back { text-decoration:none; font-size:20px; color:#cfe0ff; border:1px solid rgba(207,224,255,.25);
+          border-radius:10px; padding:6px 12px; }
+  .brand { font-size:20px; font-weight:800; letter-spacing:2px; }
+  .brandSub { font-size:11px; letter-spacing:2.5px; color:#8b93a7; }
+  .wrap { max-width:880px; margin:0 auto; padding:26px 18px 60px; }
+  .stan { display:flex; gap:16px; background:rgba(16,20,36,.75); border:1px solid rgba(255,210,92,.22);
+          border-radius:16px; padding:18px 20px; margin-bottom:22px; }
+  .stan .face { font-size:42px; }
+  .stan .who { font-weight:800; letter-spacing:1px; margin-bottom:6px; }
+  .stan .who span { color:#ffd25c; }
+  .stan p { color:#c9d4ee; line-height:1.6; font-size:14.5px; }
+  .seek { display:flex; gap:10px; margin-bottom:8px; }
+  .seek input { flex:1; background:#0b0f1e; border:1px solid rgba(207,224,255,.25); border-radius:12px;
+                color:#fff; font-size:16px; padding:13px 16px; outline:none; }
+  .seek input:focus { border-color:#ffd25c; }
+  .seek button, .ask button { background:linear-gradient(135deg,#ffd25c,#f5a518); color:#14100a; border:none;
+                font-weight:800; letter-spacing:.6px; border-radius:12px; padding:13px 22px; cursor:pointer; font-size:15px; }
+  .seek button:disabled { opacity:.55; cursor:wait; }
+  .note { color:#8b93a7; font-size:12.5px; margin-bottom:20px; line-height:1.6; }
+  #avenues { font-size:12.5px; color:#9fb4dd; margin-bottom:14px; min-height:18px; }
+  h2 { font-size:13px; letter-spacing:2.5px; color:#ffd25c; margin:22px 0 12px; }
+  .mat { display:flex; gap:12px; align-items:flex-start; background:rgba(16,20,36,.6);
+         border:1px solid rgba(207,224,255,.14); border-radius:12px; padding:13px 15px; margin-bottom:9px; }
+  .mat .t { font-weight:600; line-height:1.45; }
+  .mat .meta { font-size:12px; color:#8b93a7; margin-top:3px; }
+  .mat .ops { margin-left:auto; display:flex; gap:8px; flex-shrink:0; }
+  .mat .ops a, .mat .ops button { font-size:12px; padding:6px 11px; border-radius:8px; text-decoration:none;
+         border:1px solid rgba(255,210,92,.4); color:#ffd25c; background:transparent; cursor:pointer; }
+  .mat .ops button { border-color:rgba(207,224,255,.25); color:#9fb4dd; }
+  .empty { color:#8b93a7; font-size:14px; line-height:1.6; padding:8px 2px; }
+  .ask { display:flex; gap:10px; margin-top:10px; }
+  .ask input { flex:1; background:#0b0f1e; border:1px solid rgba(207,224,255,.25); border-radius:12px;
+               color:#fff; font-size:14.5px; padding:12px 15px; outline:none; }
+  #stanReply { margin-top:14px; background:rgba(0,240,255,.05); border:1px solid rgba(0,240,255,.18);
+               border-radius:12px; padding:14px 16px; line-height:1.65; font-size:14.5px; color:#dceaff;
+               display:none; white-space:pre-wrap; }
+  .road { font-size:11px; color:#f5c518; border:1px solid rgba(245,197,24,.4); border-radius:6px; padding:1px 6px; }
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="/" title="Back to your Main Interface">&#8962;</a>
+  <div>
+    <div class="brand">YOUR TIME UNIVERSITY</div>
+    <div class="brandSub">EDUCATION AREA &bull; STAN, THE PROCTOR</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="stan">
+    <div class="face">&#127891;</div>
+    <div>
+      <div class="who">STAN <span>— the Proctor</span></div>
+      <p id="stanSays">Hey. I'm Stan — I proctor this room, loosely. There's no clock in here and nobody's
+      grading you. Tell me what you actually want to learn — a trade, a textbook, the thing you always
+      meant to get to — and I'll go down the avenues and bring back the real material. Then we read it
+      together, at your pace. I won't do it for you; that's the whole point. What are we learning?</p>
+    </div>
+  </div>
+
+  <div class="seek">
+    <input id="topic" type="text" placeholder="What do you truly want to learn? (landscaping, statistics, welding, contracts...)"
+           onkeydown="if(event.key==='Enter')doSeek()">
+    <button id="seekBtn" onclick="doSeek()">SEEK IT</button>
+  </div>
+  <div class="note">The avenues are roads out to the world's free shelves — the Internet Archive, OpenStax,
+  OER Commons. What you seek is brought back and <b>held on your shelf</b>; the rest isn't. The institutions
+  stay where they are — only the material crosses, and no door opens behind it.</div>
+
+  <div id="avenues"></div>
+
+  <h2>YOUR SHELF — WHAT YOU'VE ACCUMULATED</h2>
+  <div id="shelf"><div class="empty">Nothing on your shelf yet. Seek something first — whatever you truly
+  want to learn. It'll wait here for you, accumulated, yours.</div></div>
+
+  <h2>UNDERSTAND IT, TOGETHER</h2>
+  <div class="note" style="margin-bottom:10px">Fetching isn't learning. Ask about anything on your shelf —
+  or anything at all — and we'll work through it until it's *in* you, not just in front of you.</div>
+  <div class="ask">
+    <input id="askBox" type="text" placeholder="Ask Stan — e.g. 'walk me through the first idea in Home Landscaping'"
+           onkeydown="if(event.key==='Enter')doAsk()">
+    <button onclick="doAsk()">ASK STAN</button>
+  </div>
+  <div id="stanReply"></div>
+</div>
+
+<script>
+  const SESSION = (function(){ try {
+    let v = localStorage.getItem('fb_session_id');
+    if (!v) { v = 'fb-' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+              localStorage.setItem('fb_session_id', v); }
+    return v; } catch(e) { return 'fb-anon'; } })();
+
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  function renderShelf(items){
+    const box = document.getElementById('shelf');
+    if (!items || !items.length) {
+      box.innerHTML = '<div class="empty">Nothing on your shelf yet. Seek something first — whatever you truly want to learn. It\'ll wait here for you, accumulated, yours.</div>';
+      return;
+    }
+    box.innerHTML = items.map(m =>
+      '<div class="mat"><div><div class="t">' + esc(m.title) + '</div>' +
+      '<div class="meta">' + esc(m.avenue) + (m.year ? ' &bull; ' + esc(m.year) : '') +
+      (m.kind === 'road' ? ' &nbsp;<span class="road">A ROAD — walk it</span>' : '') + '</div></div>' +
+      '<div class="ops"><a href="' + esc(m.url) + '" target="_blank" rel="noopener">READ</a>' +
+      '<button onclick="doRemove(\'' + esc(m.identifier) + '\')">SHELF&nbsp;X</button></div></div>'
+    ).join('');
+  }
+
+  async function loadShelf(){
+    try {
+      const r = await fetch('/api/university/shelf?session=' + encodeURIComponent(SESSION));
+      const d = await r.json();
+      renderShelf(d.shelf || []);
+    } catch(e) { /* shelf stays as-is */ }
+  }
+
+  async function doSeek(){
+    const topic = document.getElementById('topic').value.trim();
+    if (!topic) return;
+    const btn = document.getElementById('seekBtn');
+    const av = document.getElementById('avenues');
+    btn.disabled = true; btn.textContent = 'DOWN THE AVENUES...';
+    av.textContent = '';
+    try {
+      const r = await fetch('/api/university/seek', { method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ topic: topic, session: SESSION }) });
+      const d = await r.json();
+      if (!d.ok) { av.textContent = d.error || 'The avenues came back empty.'; return; }
+      document.getElementById('stanSays').textContent = d.stan;
+      av.textContent = 'Avenues walked: ' + d.avenues.map(a => a.avenue + ' (' + a.found + ' found)').join('  •  ')
+        + (d.errors && d.errors.length ? '  •  some avenues were down: ' + d.errors.join('; ') : '');
+      renderShelf(d.shelf || []);
+    } catch(e) {
+      av.textContent = 'The avenues did not answer just now. Try again in a moment.';
+    } finally { btn.disabled = false; btn.textContent = 'SEEK IT'; }
+  }
+
+  async function doRemove(identifier){
+    try {
+      const r = await fetch('/api/university/remove', { method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ identifier: identifier, session: SESSION }) });
+      const d = await r.json();
+      renderShelf(d.shelf || []);
+    } catch(e) {}
+  }
+
+  async function doAsk(){
+    const box = document.getElementById('askBox');
+    const q = box.value.trim();
+    if (!q) return;
+    const out = document.getElementById('stanReply');
+    out.style.display = 'block'; out.textContent = 'Stan is turning that over...';
+    try {
+      const r = await fetch('/api/chat', { method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ message: "Stan, in Your Time University, help me understand this — " + q,
+                               session: SESSION, history: [] }) });
+      const d = await r.json();
+      out.textContent = d.reply || 'No answer came back — ask me again.';
+    } catch(e) { out.textContent = 'The room could not reach her just now. Try again.'; }
+  }
+
+  loadShelf();
+</script>
+</body>
+</html>
